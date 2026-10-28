@@ -23,8 +23,10 @@
       VOKA 탭에 주차별 학생용 리포트를 등록합니다. 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다.
   python3 tools/hareport.py enroll-grammatik --id 이지아 --password 학생비밀번호
       문법반 학생에게 GRAMMATIK 탭을 켭니다(리포트 0개). 새 학생은 new-student 에 --grammatik 을 붙여도 됩니다.
-  python3 tools/hareport.py add-grammatik --id 이지아 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --html 리포트.html
+  python3 tools/hareport.py add-grammatik --id 이지아 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --rate 87 --html 리포트.html
       GRAMMATIK 탭에 리포트를 등록합니다. 같은 번호를 다시 올리면 덮어씁니다.
+      --rate 는 그 회차의 정답률(%)이고, 리포트가 2개 이상 쌓이면 GRAMMATIK 탭 위쪽 '실력 향상도' 그래프에 그려집니다.
+      다시 올릴 때 --rate 를 생략하면 이전에 넣은 정답률을 그대로 둡니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -317,10 +319,16 @@ def cmd_grammatik(a):
     b, sid = read_bundle(a.id, a.password)
     html = Path(a.html).read_text(encoding='utf-8')
     g = {'n': a.n, 'title': a.title, 'date': a.date, 'html': html}
+    prev = next((x for x in b.get('grammatik', []) if x['n'] == a.n), None)
+    rate = a.rate if a.rate is not None else (prev or {}).get('rate')
+    if rate is not None:
+        if not 0 <= rate <= 100:
+            sys.exit('--rate 는 0~100 사이의 정답률(%)이어야 합니다.')
+        g['rate'] = rate
     b['grammatik'] = [x for x in b.get('grammatik', []) if x['n'] != a.n] + [g]
     b['grammatik'].sort(key=lambda x: (x['n'], x['date']))
     write_bundle(b, sid, a.password)
-    print('GRAMMATIK 리포트 저장: %s번, %d자, 전체 %d개' % (a.n, len(html), len(b['grammatik'])))
+    print('GRAMMATIK 리포트 저장: %s번, %d자, 정답률 %s, 전체 %d개' % (a.n, len(html), ('%s%%' % rate) if rate is not None else '없음', len(b['grammatik'])))
 
 
 def cmd_show(a):
@@ -347,7 +355,7 @@ def main():
     v.add_argument('--week', type=int, required=True); v.add_argument('--level'); v.set_defaults(f=cmd_voka)
     q = sub.add_parser('enroll-grammatik'); [q.add_argument('--' + k, required=True) for k in ('id', 'password')]; q.set_defaults(f=cmd_enroll_grammatik)
     g = sub.add_parser('add-grammatik'); [g.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
-    g.add_argument('--n', type=int, required=True); g.set_defaults(f=cmd_grammatik)
+    g.add_argument('--n', type=int, required=True); g.add_argument('--rate', type=int); g.set_defaults(f=cmd_grammatik)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)

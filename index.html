@@ -354,17 +354,69 @@ function setMain(t){
  window.onresize=null;
  if(t==='ha') renderLevel(curLevel); else if(t==='voka') renderVoka(); else renderGrammatik();
 }
+/* GRAMMATIK 실력 향상도 그래프: 리포트를 등록할 때 넣은 회차별 정답률(rate)로 그립니다 */
+function grAvg(a){return a.length?a.reduce(function(p,c){return p+c;},0)/a.length:0;}
+function grStats(G){
+ var o=[]; G.forEach(function(r,i){if(typeof r.rate==='number'&&isFinite(r.rate))o.push({i:i,n:r.n,rate:r.rate});}); return o;
+}
+function grChart(st,wid){
+ var W=Math.max(300,Math.min(720,wid||680)), H=W<520?250:270, L=W<520?36:44, R=W<520?16:24, T=24, B=44, pw=W-L-R, ph=H-T-B, n=st.length, many=n>9, fs=W<520&&many?11:12.5;
+ var vals=st.map(function(x){return x.rate;}), hi=100, lo=Math.max(0,Math.floor((Math.min.apply(null,vals)-6)/10)*10), step=(hi-lo)>50?20:10;
+ function X(i){return n===1?L+pw/2:L+pw*i/(n-1);}
+ function Y(v){return T+ph*(1-(v-lo)/(hi-lo));}
+ var g='', v, k;
+ for(v=lo;v<=hi;v+=step) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#e3e0d8"/><text x="'+(L-8)+'" y="'+(Y(v)+4)+'" font-size="12" text-anchor="end" fill="#6b665f">'+v+'</text>';
+ st.forEach(function(x,i){g+='<text x="'+X(i)+'" y="'+(H-B+22)+'" font-size="'+(many&&W<520?11:13)+'" font-weight="'+(i===n-1?700:500)+'" text-anchor="middle" fill="'+(i===n-1?'#2f5a47':'#262220')+'">'+x.n+(many?'':'회')+'</text>';});
+ if(many) g+='<text x="'+(W-R)+'" y="'+(H-6)+'" font-size="11" text-anchor="end" fill="#6b665f">회차</text>';
+ var ma=[]; for(k=2;k<n;k++) ma.push([X(k),Y(grAvg([vals[k-2],vals[k-1],vals[k]]))]);
+ if(ma.length>1) g+='<polyline points="'+ma.map(function(q){return q[0]+','+q[1];}).join(' ')+'" fill="none" stroke="#a39d8f" stroke-width="2.2" stroke-dasharray="6 5" stroke-linejoin="round" stroke-linecap="round"/>';
+ if(n>1) g+='<polyline points="'+st.map(function(x,i){return X(i)+','+Y(x.rate);}).join(' ')+'" fill="none" stroke="#456b5a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+ st.forEach(function(x,i){
+  var last=i===n-1;
+  g+='<g class="pt" data-i="'+x.i+'"><circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="16" fill="transparent"/>'+(last?'<circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="9" fill="none" stroke="#456b5a" stroke-width="1.6" opacity=".45"/>':'')+'<circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="5.5" fill="#456b5a" stroke="#fff" stroke-width="1.5"/><text x="'+X(i)+'" y="'+(Y(x.rate)-12)+'" font-size="'+fs+'" font-weight="700" text-anchor="middle" fill="#262220">'+x.rate+'</text><title>'+x.n+'회 정답률 '+x.rate+'%</title></g>';
+ });
+ return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="회차별 정답률 그래프">'+g+'</svg>';
+}
+function grSummary(st){
+ var r=st.map(function(x){return x.rate;}), h='전체 평균 <b>'+Math.round(grAvg(r))+'%</b>', a, z, d;
+ if(st.length>=6){
+  a=Math.round(grAvg(r.slice(0,3))); z=Math.round(grAvg(r.slice(-3))); d=z-a;
+  h+=' · 처음 3회 평균 <b>'+a+'%</b>, 최근 3회 평균 <b>'+z+'%</b>'+(d>0?' ('+d+'%p 올랐습니다)':d<0?' ('+(-d)+'%p 내려갔습니다)':' (같습니다)');
+ }else{
+  a=r[0]; z=r[r.length-1]; d=z-a;
+  h+=' · '+st[0].n+'회 <b>'+a+'%</b>에서 '+st[st.length-1].n+'회 <b>'+z+'%</b>'+(d>0?'로 '+d+'%p 올랐습니다.':d<0?'로 '+(-d)+'%p 내려갔습니다.':'로 같습니다.');
+ }
+ return h;
+}
+function grGraphHtml(G){
+ if(grStats(G).length<2) return '';
+ return '<section class="card vgraph" style="padding:16px"><h2 style="margin:0 0 4px">실력 향상도</h2><div class="vsum" id="ggs"></div><div class="chart-wrap" id="ggw"></div>'
+  +'<div class="vlg"><span><i style="background:#456b5a"></i>회차별 정답률</span><span><i style="background:#a39d8f"></i>최근 3회 평균(점선)</span></div>'
+  +'<p class="note">단원마다 문항 수와 내용이 달라 한 회차의 점수보다 전체 흐름을 봅니다. 점을 누르면 그 회차 리포트로 이동합니다.</p></section>';
+}
+function grDraw(G){
+ var w=$('#ggw'); if(!w) return; var st=grStats(G);
+ w.innerHTML=grChart(st,w.clientWidth); $('#ggs').innerHTML=grSummary(st);
+}
 /* GRAMMATIK 탭: 문법반 학생용 리포트 */
 function renderGrammatik(){
  var d=session.data, G=(d.grammatik||[]).slice().sort(function(p,q){return p.n-q.n;}), pane=$('#pane-gr');
  window.onresize=null;
  if(!G.length){pane.innerHTML='<div class="empty"><b>GRAMMATIK</b> 리포트가 아직 없습니다.<br>GRAMMATIK 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
- var h='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">GRAMMATIK 리포트</h2><button class="btn" id="gnw" style="display:none">새 창으로 열기</button></div>';
+ var h=grGraphHtml(G)+'<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">GRAMMATIK 리포트</h2><button class="btn" id="gnw" style="display:none">새 창으로 열기</button></div>';
  h+='<div class="tabs" id="gtabs" role="tablist">';
  G.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===G.length-1)+'"><span class="tn">'+r.n+'회</span><span class="tt">'+esc(r.title)+'<small>'+esc(r.date||'')+'</small></span></button>';});
  h+='</div><iframe id="gf" title="GRAMMATIK 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe></section>';
  pane.innerHTML=h;
  showReport(G,G.length-1,'gf','gnw');
+ if($('#ggw')){
+  grDraw(G);
+  var gt;window.onresize=function(){clearTimeout(gt);gt=setTimeout(function(){grDraw(G);},150);};
+  $('#ggw').addEventListener('click',function(e){
+   var pt=e.target.closest('.pt'); if(!pt) return;
+   var t=$('#gtabs .tab[data-i="'+pt.dataset.i+'"]'); if(t){t.click();$('#gtabs').scrollIntoView({behavior:'smooth',block:'start'});}
+  });
+ }
  $('#gtabs').addEventListener('click',function(e){
   var t=e.target.closest('.tab'); if(!t) return;
   this.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');});

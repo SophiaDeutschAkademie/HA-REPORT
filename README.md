@@ -34,7 +34,7 @@ python3 tools/hareport.py add-exam   --id 아이디 --password 학생비밀번�
 python3 tools/hareport.py add-report --id 아이디 --password 학생비밀번호 --level B1 --exam-n 2 --title "과제명" --date 2026-10-28 --html 리포트.html
 python3 tools/hareport.py add-voka   --id 아이디 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
 python3 tools/hareport.py enroll-grammatik --id 아이디 --password 학생비밀번호
-python3 tools/hareport.py add-grammatik    --id 아이디 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --html 리포트.html
+python3 tools/hareport.py add-grammatik    --id 아이디 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --rate 87 --html 리포트.html
 python3 tools/hareport.py show       --id 아이디 --password 학생비밀번호
 ```
 
@@ -43,7 +43,7 @@ python3 tools/hareport.py show       --id 아이디 --password 학생비밀번�
 - 시험과 리포트는 레벨(A1, A2, B1, B2)별로 저장하고, 회차 번호는 레벨 안에서 셉니다. `exam.json`의 `level`과 `add-report`의 `--level`을 생략하면 학생의 기본 레벨로 저장합니다. 같은 레벨에서 같은 회차를 다시 올리면 덮어쓰고, 레벨이 다르면 회차가 같아도 따로 저장합니다.
 - 접속(아이디, 비밀번호)은 레벨과 관계없습니다. 로그인 화면에는 레벨이 나오지 않고, 로그인한 뒤에만 레벨 버튼이 보입니다.
 - VOKA 리포트는 로그인 후 위쪽 "VOKA" 탭에 주차별로 보입니다. `add-voka`는 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다. 과제 첨삭 기록 없이 VOKA만 있는 학생은 VOKA 탭이 먼저 열립니다.
-- 문법반 학생에게는 로그인 후 "GRAMMATIK" 탭이 하나 더 보입니다. `enroll-grammatik`으로 탭을 켜면(리포트 0개) "GRAMMATIK 리포트가 아직 없습니다"로 보이고, `add-grammatik`으로 등록한 리포트가 회차 순서로 나타납니다. 같은 번호를 다시 올리면 덮어씁니다. 새 학생은 `new-student`에 `--grammatik`을 붙여도 됩니다. 탭을 켜지 않은 학생에게는 GRAMMATIK 탭이 보이지 않습니다. 과제 첨삭과 VOKA 기록이 없는 문법반 학생은 GRAMMATIK 탭이 먼저 열립니다.
+- 문법반 학생에게는 로그인 후 "GRAMMATIK" 탭이 하나 더 보입니다. `enroll-grammatik`으로 탭을 켜면(리포트 0개) "GRAMMATIK 리포트가 아직 없습니다"로 보이고, `add-grammatik`으로 등록한 리포트가 회차 순서로 나타납니다. 같은 번호를 다시 올리면 덮어씁니다. `--rate`(그 회차 정답률, %)를 함께 올리면 정답률이 2회 이상 쌓인 뒤부터 GRAMMATIK 탭 위쪽에 회차별 정답률과 최근 3회 평균을 보여 주는 "실력 향상도" 그래프가 나타납니다. 새 학생은 `new-student`에 `--grammatik`을 붙여도 됩니다. 탭을 켜지 않은 학생에게는 GRAMMATIK 탭이 보이지 않습니다. 과제 첨삭과 VOKA 기록이 없는 문법반 학생은 GRAMMATIK 탭이 먼저 열립니다.
 - 아이디는 NFKC 정규화 후 공백을 없애고 소문자로 바꿔 비교합니다.
 
 `exam.json` 형식(점수는 백분율, 측정하지 않은 영역은 null):
