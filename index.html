@@ -140,7 +140,7 @@ var AREAS=[
 ];
 var AVG={k:'avg',name:'평균',color:'#262220',shape:'bar'};
 var app=document.getElementById('app');
-var session=null, hidden={}, objUrls=[], curLevel=null;
+var session=null, hidden={}, objUrls=[], curLevel=null, adminKeep=null;
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function $(s,r){return (r||document).querySelector(s);}
@@ -328,7 +328,7 @@ function viewReport(){
  var d=session.data; $('#top').hidden=false;
  curLevel=startLevel(d);
  var hasHa=(d.exams||[]).length+(d.reports||[]).length>0, hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':'ha';
- var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><button class="btn" id="out">로그아웃</button></div></div>';
+ var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><div>'+(adminKeep?'<button class="btn" id="bk">관리자 화면으로</button> ':'')+'<button class="btn" id="out">로그아웃</button></div></div></div>';
  h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류" style="grid-template-columns:repeat('+(hasGr?3:2)+',1fr)">'
   +(hasGr?'<button type="button" class="mtab" role="tab" data-t="gr" aria-selected="'+(tab==='gr')+'">GRAMMATIK</button>':'')
   +'<button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button></div>';
@@ -339,6 +339,7 @@ function viewReport(){
  h+='<p class="foot">이 화면은 이 브라우저에서만 열려 있습니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
  app.innerHTML=h;
  $('#out').addEventListener('click',leave);
+ if($('#bk')) $('#bk').addEventListener('click',backToAdmin);
  $('#lvs').addEventListener('click',function(e){
   var b=e.target.closest('.lvbtn'); if(!b||b.dataset.l===curLevel) return;
   renderLevel(b.dataset.l);
@@ -588,15 +589,27 @@ function showReport(reps,i,fid,nid){
   var u=URL.createObjectURL(new Blob([r.html],{type:'text/html'})); objUrls.push(u); window.open(u,'_blank');
  };
 }
+function backToAdmin(){
+ if(!adminKeep||!session) return;
+ objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
+ hidden={}; curLevel=null; window.onresize=null;
+ session.data=adminKeep; adminKeep=null;
+ window.HAAdmin.open({keep:true}); window.scrollTo(0,0);
+}
+function previewStudent(data){
+ if(!session||!session.data||session.data.role!=='admin'||adminKeep) return;
+ adminKeep=session.data; session.data=data; hidden={}; curLevel=null; app.className='wrap';
+ viewReport();
+}
 function leave(){
  if(window.HAAdmin) window.HAAdmin.close();
- session=null; hidden={}; curLevel=null;
+ adminKeep=null; session=null; hidden={}; curLevel=null;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
  window.onresize=null;
  viewLogin(); window.scrollTo(0,0);
 }
 
-window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,session:function(){return session;}};
+window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;}};
 viewLogin();
 })();
 </script>

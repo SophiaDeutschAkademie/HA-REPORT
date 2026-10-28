@@ -140,7 +140,7 @@ function inFilter(c,f){
 }
 
 /* 화면 */
-var CSS='.wrap.wide{max-width:1040px}.lvs{font:inherit;font-size:13.5px;padding:3px 4px;max-width:150px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}'
+var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);text-decoration:underline;text-underline-offset:3px;cursor:pointer}.lvs{font:inherit;font-size:13.5px;padding:3px 4px;max-width:150px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}'
 +'.asum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 4px}'
 +'.acell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}'
 +'.acell b{display:block;font-size:26px;line-height:1.3}.acell span{color:var(--mute);font-size:13px}'
@@ -201,22 +201,25 @@ function needToken(){
  return false;
 }
 
-function open(){
- var sess=H().session(); if(!sess||!sess.data) return;
- S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
- st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null;
- try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
+function open(o){
+ var keep=!!(o&&o.keep&&A&&S); /* 학생 화면에서 돌아올 때는 불러온 현황을 그대로 씁니다 */
+ if(!keep){
+  var sess=H().session(); if(!sess||!sess.data) return;
+  S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
+  st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null;
+  try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
+ }
  injectStyle();
  var app=H().app; app.className='wrap wide'; $('#top').hidden=false;
  var h='<div class="vhead"><div class="row"><div><div class="who">관리자</div><div class="lv">'+esc(A.name||'')+'</div></div><button class="btn" id="out">로그아웃</button></div></div>';
  h+='<div class="asum" id="asum"></div>';
  h+='<section class="card asec"><div class="rhead"><h2 style="margin:0">학생 현황</h2><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
-  +'<label class="thr">기준 <input id="athr" type="number" min="1" max="90" value="7"> 일 이상 지남</label><button type="button" class="btn" id="arf">새로 불러오기</button></div></div>'
+  +'<label class="thr">기준 <input id="athr" type="number" min="1" max="90" value="'+thr+'"> 일 이상 지남</label><button type="button" class="btn" id="arf">새로 불러오기</button></div></div>'
   +'<div class="tabs" id="aflt" role="tablist" aria-label="보기"></div><div class="msg" id="atmsg" role="status"></div><div class="tbscroll" id="atb"></div><p class="note" id="anote"></p></section>';
  h+='<section class="card asec" id="aman"><h2>학생 관리</h2>'
   +'<h3>GitHub 토큰</h3><p class="note">학생 추가·삭제와 비밀번호 저장에 필요합니다. GitHub의 Settings → Developer settings → Fine-grained tokens에서 HA-REPORT 저장소 하나만 고르고 Contents 권한을 Read and write로 만든 토큰을 붙여 넣으십시오. 토큰은 저장소에 올라가지 않습니다.</p>'
   +'<div class="aform" style="grid-template-columns:1fr auto"><div><label for="atk">토큰</label><input id="atk" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..."></div><div style="display:flex;gap:6px;padding-bottom:0"><button type="button" class="btn main" id="atks">사용</button><button type="button" class="btn" id="atkc">지우기</button></div></div>'
-  +'<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)"><input type="checkbox" id="atkr"> 이 브라우저에 기억합니다</label><p class="note" id="atkn"></p>'
+  +'<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)"><input type="checkbox" id="atkr"> 이 브라우저에 기억합니다 (다음 로그인부터 다시 입력하지 않습니다. 여러 사람이 쓰는 컴퓨터에서는 끄십시오)</label><p class="note" id="atkn"></p>'
   +'<h3>학생 추가</h3><p class="note">새 학생 파일을 만들고 명단에 넣습니다. 비밀번호는 비워 두면 20자리로 자동 생성합니다.</p>'
   +'<div class="aform"><div><label for="an">이름</label><input id="an" type="text" autocomplete="off"></div><div><label for="ai">아이디</label><input id="ai" type="text" autocomplete="off" placeholder="비우면 이름"></div>'
   +'<div><label for="al">레벨·반</label><select id="al">'+LEVELS.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div>'
@@ -248,7 +251,7 @@ function open(){
  });
  tokenNote();
  window.scrollTo(0,0);
- loadAll();
+ if(keep) renderTable(); else loadAll();
 }
 function close(){
  gen++; A=null; S=null; st={}; shown={}; pending={}; token=''; working=false;
@@ -259,7 +262,7 @@ function tokenNote(){
  var n=$('#atkn'); if(!n) return;
  n.textContent=token?'토큰이 설정되어 있습니다. 학생 추가·삭제를 쓸 수 있고, 현황은 저장소에서 바로 읽습니다.':'토큰이 없습니다. 현황은 보이지만 학생 추가·삭제는 쓸 수 없습니다.';
  var k=$('#atk'); if(k&&token) k.placeholder='설정됨';
- var r=$('#atkr'); if(r){try{r.checked=!!localStorage.getItem(TKEY);}catch(e){}}
+ var r=$('#atkr'); if(r){var sv=false;try{sv=!!localStorage.getItem(TKEY);}catch(e){} r.checked=token?sv:true;}
 }
 function useToken(){
  var v=$('#atk').value.trim();
@@ -288,7 +291,7 @@ function rowHtml(s){
  var x=st[s.fid]||{state:'load'}, c=cls(s), m=x.state==='ok'?x.sum:null;
  var name=m?m.name:s.name, lvl=m?m.level:s.level; if(m&&m.gr) lvl='GRAMMATIK'; /* 문법반은 레벨 GRAMMATIK으로 합쳐 보입니다 */
  var h='<tr class="'+(c.k==='late'?'late':'')+'" data-f="'+esc(s.fid)+'">';
- h+='<td><b>'+esc(name)+'</b>'+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
+ h+='<td>'+(x.state==='ok'?'<a href="#" class="nm" data-a="view">'+esc(name)+'</a>':'<b>'+esc(name)+'</b>')+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
  var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
  h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select></td>';
  ['ha','vk','gm'].forEach(function(k){
@@ -307,7 +310,7 @@ function rowHtml(s){
  return h+'<td>'+mg+'</td></tr>';
 }
 function renderTable(){
- if(!A) return;
+ if(!A||!$('#atb')) return;
  var keep={}; document.querySelectorAll('#atb tr[data-f] .rp').forEach(function(i){if(i.value)keep[i.closest('tr').dataset.f]=i.value;});
  var sm=summaryHtml(); $('#asum').innerHTML=sm.html;
  var F=[['all','전체',sm.c.all],['late',thr+'일 이상 지남',sm.c.late],['norec','기록 없음',sm.c.norec],['ok','정상',sm.c.ok],['warn','확인 필요',sm.c.warn]];
@@ -332,6 +335,7 @@ function onTable(e){
  if(a==='pw'){shown[fid]=!shown[fid];renderTable();}
  else if(a==='del') removeStudent(s);
  else if(a==='link') linkStudent(s.id,tr.querySelector('.rp').value);
+ else if(a==='view'){e.preventDefault();viewStudent(s);}
 }
 
 /* 현황 불러오기 */
@@ -427,6 +431,15 @@ async function linkStudent(idv,pw){
   say(b.name+' 학생을 명단에 반영했습니다.');
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
+}
+async function viewStudent(s){
+ if(working||!s.password) return;
+ busy(true); say('학생 화면을 불러오고 있습니다.');
+ try{
+  var buf=await fetchFile(s.fid), b=await H().decryptBundle(buf,s.password,s.fid);
+  say(''); busy(false); H().preview(b); return;
+ }catch(e){say(msgOf(e),true);}
+ busy(false);
 }
 async function changeLevel(s,lv){
  if(working) return;
