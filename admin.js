@@ -208,6 +208,7 @@ function open(o){
   S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
   st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null;
   try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
+  if(A.token) token=A.token; /* 관리자 파일에 암호화되어 들어 있는 토큰 */
  }
  injectStyle();
  var app=H().app; app.className='wrap wide'; $('#top').hidden=false;
@@ -260,7 +261,7 @@ function close(){
 
 function tokenNote(){
  var n=$('#atkn'); if(!n) return;
- n.textContent=token?'토큰이 설정되어 있습니다. 학생 추가·삭제를 쓸 수 있고, 현황은 저장소에서 바로 읽습니다.':'토큰이 없습니다. 현황은 보이지만 학생 추가·삭제는 쓸 수 없습니다.';
+ n.textContent=(A&&A.token&&token===A.token)?'관리자 파일에 저장된 토큰을 쓰고 있습니다. 따로 입력하지 않아도 학생 추가·삭제·레벨 변경을 쓸 수 있습니다.':token?'토큰이 설정되어 있습니다. 학생 추가·삭제를 쓸 수 있고, 현황은 저장소에서 바로 읽습니다.':'토큰이 없습니다. 현황은 보이지만 학생 추가·삭제는 쓸 수 없습니다.';
  var k=$('#atk'); if(k&&token) k.placeholder='설정됨';
  var r=$('#atkr'); if(r){var sv=false;try{sv=!!localStorage.getItem(TKEY);}catch(e){} r.checked=token?sv:true;}
 }
@@ -274,6 +275,7 @@ function useToken(){
  else{say('토큰을 설정했습니다. 현황을 다시 불러옵니다.'); loadAll();}
 }
 function clearToken(){
+ if(A&&A.token){say('이 토큰은 관리자 파일에 저장되어 있어 여기서 지울 수 없습니다.',true);return;}
  token=''; try{localStorage.removeItem(TKEY);}catch(e){}
  var k=$('#atk'); if(k){k.value='';k.placeholder='github_pat_...';}
  tokenNote(); say('토큰을 지웠습니다.');

@@ -17,6 +17,8 @@
   python3 tools/hareport.py remove-student --id 김민서 --admin-password 관리비밀번호
       학생을 뺍니다. 학생 파일은 무작위 바이트로 덮어써서 가짜 파일이 되고, 그 학생은 로그인할 수 없습니다.
   python3 tools/hareport.py list-students --admin-password 관리비밀번호 [--show-passwords]
+  python3 tools/hareport.py set-token --admin-password 관리비밀번호 --token GitHub토큰 [--clear]
+      GitHub 토큰을 관리자 파일 안에 관리 비밀번호로 암호화해 넣습니다. 관리자 로그인만 하면 토큰을 따로 입력하지 않아도 됩니다.
   python3 tools/hareport.py add-exam --id 김민서 --password 학생비밀번호 --json exam.json
   python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
   python3 tools/hareport.py add-voka --id 김민서 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
@@ -257,6 +259,20 @@ def cmd_remove(a):
     print('뺐습니다: %s. 이 학생은 더 이상 로그인할 수 없습니다.' % e['name'])
 
 
+def cmd_set_token(a):
+    A = read_admin(a.admin_password)
+    if a.clear:
+        A.pop('token', None)
+        write_admin(A, a.admin_password)
+        print('관리자 파일에서 토큰을 지웠습니다.')
+        return
+    if not a.token or len(a.token) < 20:
+        sys.exit('토큰을 --token 으로 주십시오.')
+    A['token'] = a.token.strip()
+    write_admin(A, a.admin_password)
+    print('토큰을 관리자 파일(관리 비밀번호로 암호화)에 저장했습니다.')
+
+
 def cmd_list(a):
     A = read_admin(a.admin_password)
     for s in A['students']:
@@ -345,6 +361,7 @@ def main():
     k = sub.add_parser('link-student'); k.add_argument('--id', required=True); k.add_argument('--admin-password', required=True)
     k.add_argument('--password'); k.add_argument('--no-password', action='store_true'); k.set_defaults(f=cmd_link)
     m = sub.add_parser('remove-student'); [m.add_argument('--' + x, required=True) for x in ('id', 'admin-password')]; m.set_defaults(f=cmd_remove)
+    t = sub.add_parser('set-token'); t.add_argument('--admin-password', required=True); t.add_argument('--token'); t.add_argument('--clear', action='store_true'); t.set_defaults(f=cmd_set_token)
     l = sub.add_parser('list-students'); l.add_argument('--admin-password', required=True); l.add_argument('--show-passwords', action='store_true'); l.set_defaults(f=cmd_list)
     n = sub.add_parser('new-student'); [n.add_argument('--' + k, required=True) for k in ('name', 'level', 'admin-password')]; n.add_argument('--password')
     n.add_argument('--id'); n.add_argument('--grammatik', action='store_true'); n.set_defaults(f=cmd_new)
