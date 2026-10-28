@@ -40,6 +40,14 @@ function b64(u8){
  for(i=0;i<u8.length;i+=ch) s+=String.fromCharCode.apply(null,u8.subarray(i,i+ch));
  return btoa(s);
 }
+function randText(n){return b64(randBytes(Math.ceil(n*3/4)+4)).replace(/[+\/=]/g,'x').slice(0,n);}
+function withPad(b){ /* 내용이 적은 학생 파일은 무작위 채움(pad)으로 가짜 파일과 비슷한 크기로 만듭니다 */
+ var real={},k; for(k in b) if(k!=='pad') real[k]=b[k];
+ if(JSON.stringify(real).length>=30000) return real;
+ if(typeof b.pad==='string') return b;
+ real.pad=randText(Math.max(0,decoySize()-JSON.stringify(real).length));
+ return real;
+}
 async function encryptBundle(obj,pw,sid){
  var salt=randBytes(16), iv=randBytes(12), enc=new TextEncoder();
  var km=await crypto.subtle.importKey('raw',enc.encode(pw.trim().normalize('NFKC')),'PBKDF2',false,['deriveKey']);
@@ -411,7 +419,7 @@ async function addStudent(){
   if(names[fid+'.bin']&&!reuse) throw new Error('같은 아이디의 파일이 저장소에 이미 있습니다. 아래 "기존 학생 연결"을 쓰십시오.');
   var b={name:name,level:lv,exams:[],reports:[],voka:[]}; if(gr) b.grammatik=[];
   say('학생 파일을 암호화하고 있습니다.');
-  var sbytes=await encryptBundle(b,pw,fid);
+  var sbytes=await encryptBundle(withPad(b),pw,fid);
   fresh=await adminFresh();
   if(fresh.students.some(function(s){return s.fid===fid;})) throw new Error('이미 명단에 있는 아이디입니다.');
   fresh.students.push({id:idv,fid:fid,name:name,level:lv,password:pw,added:ymd(new Date())});
@@ -498,7 +506,7 @@ async function changeLevel(s,lv){
     msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다.'+(Array.isArray(b.grammatik)?' GRAMMATIK 탭은 그대로 있습니다.':'')+' 반영까지 1~2분 걸립니다.';
    }
    cur.level=b.level;
-   changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(b,cur.password,s.fid)});
+   changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(withPad(b),cur.password,s.fid)});
   }else{
    cur.level=lv; msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.';
   }

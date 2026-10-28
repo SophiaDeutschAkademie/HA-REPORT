@@ -17,6 +17,8 @@
   python3 tools/hareport.py remove-student --id 김민서 --admin-password 관리비밀번호
       학생을 뺍니다. 학생 파일은 무작위 바이트로 덮어써서 가짜 파일이 되고, 그 학생은 로그인할 수 없습니다.
   python3 tools/hareport.py list-students --admin-password 관리비밀번호 [--show-passwords]
+  python3 tools/hareport.py pad-students --admin-password 관리비밀번호
+      내용이 적은 학생 파일에 무작위 채움을 넣어 가짜 파일과 비슷한 크기로 만듭니다. 새 학생과 기록을 저장할 때는 자동으로 적용됩니다.
   python3 tools/hareport.py set-token --admin-password 관리비밀번호 --token GitHub토큰 [--clear]
       GitHub 토큰을 관리자 파일 안에 관리 비밀번호로 암호화해 넣습니다. 관리자 로그인만 하면 토큰을 따로 입력하지 않아도 됩니다.
   python3 tools/hareport.py add-exam --id 김민서 --password 학생비밀번호 --json exam.json
@@ -164,8 +166,22 @@ def read_bundle(login_id, password):
         sys.exit('학생 비밀번호가 맞지 않습니다.')
 
 
+def pad_bundle(b):
+    # 내용이 적은 학생 파일은 무작위 채움(pad)으로 가짜 파일과 비슷한 크기(30KB~900KB)로 만듭니다.
+    # 파일 크기만 보고 실제 학생 파일을 가려내지 못하게 하려는 것입니다. 내용이 30KB를 넘으면 채움을 뺍니다.
+    real = {k: v for k, v in b.items() if k != 'pad'}
+    n = len(json.dumps(real, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+    if n >= 30000:
+        return real
+    if isinstance(b.get('pad'), str):
+        return b
+    want = decoy_size() - n
+    real['pad'] = secrets.token_urlsafe(want * 3 // 4 + 4)[:want]
+    return real
+
+
 def write_bundle(bundle, sid, password):
-    (DATA / (sid + '.bin')).write_bytes(encrypt(bundle, password, sid))
+    (DATA / (sid + '.bin')).write_bytes(encrypt(pad_bundle(bundle), password, sid))
 
 
 def cmd_init(a):
@@ -183,6 +199,26 @@ def cmd_init(a):
     pad_decoys(A)
     write_admin(A, apw)
     print('관리 아이디: %s\n관리 비밀번호: %s' % (ADMIN_LOGIN, apw))
+
+
+def cmd_pad_students(a):
+    A = read_admin(a.admin_password)
+    n = 0
+    for s in A['students']:
+        if not s.get('password'):
+            continue
+        f = DATA / (s['fid'] + '.bin')
+        if not f.exists():
+            continue
+        try:
+            b = decrypt(f.read_bytes(), s['password'], s['fid'])
+        except Exception:
+            continue
+        if pad_bundle(b) == b:
+            continue
+        write_bundle(b, s['fid'], s['password'])
+        n += 1
+    print('학생 파일 %d개의 크기를 가짜 파일과 비슷하게 맞췄습니다.' % n)
 
 
 def cmd_resize_decoys(a):
@@ -366,6 +402,7 @@ def main():
     k.add_argument('--password'); k.add_argument('--no-password', action='store_true'); k.set_defaults(f=cmd_link)
     m = sub.add_parser('remove-student'); [m.add_argument('--' + x, required=True) for x in ('id', 'admin-password')]; m.set_defaults(f=cmd_remove)
     t = sub.add_parser('set-token'); t.add_argument('--admin-password', required=True); t.add_argument('--token'); t.add_argument('--clear', action='store_true'); t.set_defaults(f=cmd_set_token)
+    pd = sub.add_parser('pad-students'); pd.add_argument('--admin-password', required=True); pd.set_defaults(f=cmd_pad_students)
     l = sub.add_parser('list-students'); l.add_argument('--admin-password', required=True); l.add_argument('--show-passwords', action='store_true'); l.set_defaults(f=cmd_list)
     n = sub.add_parser('new-student'); [n.add_argument('--' + k, required=True) for k in ('name', 'level', 'admin-password')]; n.add_argument('--password')
     n.add_argument('--id'); n.add_argument('--grammatik', action='store_true'); n.set_defaults(f=cmd_new)
