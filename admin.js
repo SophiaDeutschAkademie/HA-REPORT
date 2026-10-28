@@ -297,11 +297,11 @@ function summaryHtml(){
 }
 function rowHtml(s){
  var x=st[s.fid]||{state:'load'}, c=cls(s), m=x.state==='ok'?x.sum:null;
- var name=m?m.name:s.name, lvl=m?m.level:s.level; if(m&&m.gr) lvl='GRAMMATIK'; /* 문법반은 레벨 GRAMMATIK으로 합쳐 보입니다 */
+ var name=m?m.name:s.name, lvl=m?m.level:s.level;
  var h='<tr class="'+(c.k==='late'?'late':'')+'" data-f="'+esc(s.fid)+'">';
  h+='<td>'+(x.state==='ok'?'<a href="#" class="nm" data-a="view">'+esc(name)+'</a>':'<b>'+esc(name)+'</b>')+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
  var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
- h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select></td>';
+ h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select>'+(m&&m.gr&&lvl!=='GRAMMATIK'?'<small>GRAMMATIK 탭 있음</small>':'')+'</td>';
  ['ha','vk','gm'].forEach(function(k){
   var q=m&&m[k];
   h+='<td>'+(q&&q.last?fmtD(q.last)+'<small>'+q.n+'개</small>':'-')+'</td>';
@@ -464,23 +464,30 @@ async function changeLevel(s,lv){
   say('저장소 상태를 확인하고 있습니다.');
   var fresh=await adminFresh(), cur=fresh.students.filter(function(x){return x.fid===s.fid;})[0];
   if(!cur) throw new Error('명단에서 이미 빠져 있습니다. 새로 불러오기를 눌러 확인하십시오.');
-  var changes=[], nm=cur.name, b=null;
-  if(cur.password){ /* 학생 파일 안의 기본 레벨과 문법반 설정도 함께 바꿉니다 */
+  var changes=[], nm=cur.name, b=null, msg;
+  if(lv==='GRAMMATIK'&&!cur.password) throw new Error('GRAMMATIK 탭은 학생 파일 안에 있어 비밀번호가 필요합니다. 먼저 이 줄에서 비밀번호를 연결하십시오.');
+  if(cur.password){ /* 학생 파일 안의 기본 레벨과 GRAMMATIK 탭도 함께 바꿉니다 */
    var buf=await fetchFile(s.fid);
    try{b=await H().decryptBundle(buf,cur.password,s.fid);}catch(e){throw new Error('저장된 비밀번호로 학생 파일을 열지 못했습니다. 비밀번호를 다시 연결하십시오.');}
-   if(lv==='GRAMMATIK'){ if(!Array.isArray(b.grammatik)) b.grammatik=[]; }
-   else if(Array.isArray(b.grammatik)){ /* 레벨과 반을 하나로 보므로, 리포트가 없을 때만 반을 풉니다 */
-    if(b.grammatik.length) throw new Error('GRAMMATIK 리포트가 '+b.grammatik.length+'개 등록되어 있어 다른 레벨로 바꿀 수 없습니다.');
-    delete b.grammatik;
+   nm=b.name;
+   if(lv==='GRAMMATIK'){ /* 다른 레벨만 있어도 GRAMMATIK 탭을 만듭니다. 기존 레벨은 그대로 둡니다 */
+    if(Array.isArray(b.grammatik)){say(nm+' 학생에게는 이미 GRAMMATIK 탭이 있습니다.');return;}
+    b.grammatik=[];
+    if(!b.level||b.level==='-') b.level='GRAMMATIK';
+    msg=nm+' 학생에게 GRAMMATIK 탭을 만들었습니다. 레벨은 '+b.level+' 그대로입니다. 반영까지 1~2분 걸립니다.';
+   }else{ /* 레벨만 바꾸고 GRAMMATIK 탭과 리포트는 그대로 둡니다 */
+    b.level=lv;
+    msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다.'+(Array.isArray(b.grammatik)?' GRAMMATIK 탭은 그대로 있습니다.':'')+' 반영까지 1~2분 걸립니다.';
    }
-   b.level=lv; nm=b.name;
+   cur.level=b.level;
    changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(b,cur.password,s.fid)});
+  }else{
+   cur.level=lv; msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.';
   }
-  cur.level=lv;
   changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; if(b) st[s.fid]={state:'ok',sum:summarize(b)};
-  say(nm+' 학생의 레벨(반)을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.');
+  say(msg);
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
 }
