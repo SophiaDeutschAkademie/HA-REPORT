@@ -299,7 +299,7 @@ function levelBtns(d){
  return levelsOf(d).map(function(L){
   var it=itemsFor(d,L), none=!it.exams.length&&!it.reps.length;
   return '<button type="button" class="lvbtn'+(none?' none':'')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===curLevel)+'"><b>'+esc(L)+'</b>'
-   +(none?'<span>등록된 기록 없음</span>':'<span>시험 '+it.exams.length+'회</span><span>리포트 '+it.reps.length+'개</span>')+'</button>';
+   +(none?'<span>등록된 리포트 없음</span>':'<span>리포트 '+Math.max(it.reps.length,it.exams.length)+'개</span>')+'</button>';
  }).join('');
 }
 
