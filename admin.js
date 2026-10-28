@@ -65,7 +65,7 @@ async function gh(path,opt){
  var init={method:opt.method||'GET',headers:h,cache:'no-store'};
  if(opt.body){init.body=JSON.stringify(opt.body);h['Content-Type']='application/json';}
  var r=await fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/'+path,init);
- if(!r.ok){var e=new Error('gh'+r.status);e.status=r.status;throw e;}
+ if(!r.ok){var e=new Error('gh'+r.status);e.status=r.status;e.remain=r.headers.get('x-ratelimit-remaining');try{e.gh=(await r.json()).message;}catch(x){} throw e;}
  return opt.raw?await r.arrayBuffer():await r.json();
 }
 async function listData(){
@@ -92,14 +92,20 @@ async function adminFresh(){
  return b;
 }
 async function fetchFile(fid){
- if(token) return await gh('contents/data/'+fid+'.bin?ref='+GH.branch,{raw:true});
+ if(token){ /* 토큰이 읽기에서도 거부되면 공개 사본(GitHub Pages)으로 읽습니다 */
+  try{return await gh('contents/data/'+fid+'.bin?ref='+GH.branch,{raw:true});}
+  catch(e){if(!(e&&(e.status===401||e.status===403))) throw e;}
+ }
  var r=await fetch('data/'+fid+'.bin',{cache:'no-store'});
  if(!r.ok){var e=new Error('http'+r.status);e.status=r.status;throw e;}
  return await r.arrayBuffer();
 }
 function msgOf(e){
  if(e&&e.status===401) return '토큰이 올바르지 않거나 만료되었습니다.';
- if(e&&e.status===403) return '토큰에 이 저장소의 Contents 읽기·쓰기 권한이 없거나 요청 한도를 넘었습니다.';
+ if(e&&e.status===403){
+  if(e.remain==='0') return 'GitHub 요청 한도를 넘었습니다. 잠시 뒤 다시 시도하십시오.';
+  return '토큰에 이 저장소의 쓰기 권한이 없습니다. 토큰을 만들 때 Resource owner를 SophiaDeutschAkademie(조직)로 고르고 Contents를 Read and write로 설정해야 합니다. 조직이 토큰 승인을 요구하면 조직 관리자 승인도 필요합니다.'+(e.gh?' (GitHub 응답: '+e.gh+')':'');
+ }
  if(e&&e.status===404) return '저장소나 파일을 찾을 수 없습니다. 토큰이 HA-REPORT 저장소에 접근할 수 있는지 확인하십시오.';
  if(e&&(e.status===409||e.status===422)) return '다른 곳에서 저장소가 먼저 바뀌었습니다. 새로 불러오기를 누른 뒤 다시 시도하십시오.';
  if(e&&e.name==='OperationError') return '비밀번호가 맞지 않습니다.';
@@ -206,7 +212,7 @@ function open(o){
  if(!keep){
   var sess=H().session(); if(!sess||!sess.data) return;
   S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
-  st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null;
+  st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null; tokenChecked=false;
   try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
   if(A.token) token=A.token; /* 관리자 파일에 암호화되어 들어 있는 토큰 */
  }
@@ -268,7 +274,7 @@ function tokenNote(){
 function useToken(){
  var v=$('#atk').value.trim();
  if(!v){say('토큰을 입력하십시오.',true);return;}
- token=v; $('#atk').value='';
+ token=v; tokenChecked=false; $('#atk').value='';
  try{if($('#atkr').checked)localStorage.setItem(TKEY,token);else localStorage.removeItem(TKEY);}catch(e){}
  tokenNote();
  if(Object.keys(pending).length){flushPending().then(function(){if(A)loadAll();});}
@@ -354,6 +360,12 @@ async function loadOne(s,g){
  if(g!==gen) return;
  st[s.fid]=r; renderTable();
 }
+var tokenChecked=false;
+async function checkToken(){ /* 토큰으로 쓰기가 되는지 빈 데이터 하나를 올려 미리 확인합니다(저장소에는 보이지 않습니다) */
+ if(!token||tokenChecked||!A) return; tokenChecked=true;
+ try{await gh('git/blobs',{method:'POST',body:{content:'',encoding:'utf-8'}});}
+ catch(e){tokenChecked=false;say(msgOf(e),true);}
+}
 async function loadAll(){
  var g=++gen; lastErr=''; loadedAt=null; st={};
  A.students.forEach(function(s){st[s.fid]={state:s.password?'load':'nopw'};});
@@ -363,6 +375,7 @@ async function loadAll(){
  await Promise.all([worker(),worker(),worker()]);
  if(g!==gen) return;
  loadedAt=new Date(); renderTable();
+ checkToken();
 }
 
 /* 학생 추가·연결·삭제 */
