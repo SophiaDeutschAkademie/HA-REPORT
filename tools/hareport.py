@@ -7,7 +7,7 @@
 사용법 (저장소 루트에서 실행)
   python3 tools/hareport.py init-admin
       관리 비밀번호를 만들고 가짜 파일(decoy)을 채웁니다. 처음 한 번만 실행합니다.
-  python3 tools/hareport.py new-student --name 김민서 --level B1 --admin-password 관리비밀번호 [--id 김민서2]
+  python3 tools/hareport.py new-student --name 김민서 --level B1 --admin-password 관리비밀번호 [--id 김민서2] [--password 20자리비밀번호]
       새 학생을 만들고 20자리 학생 비밀번호를 한 번만 출력합니다. 아이디는 기본이 이름입니다.
       같은 이름이 두 명이면 --id 로 다른 아이디를 줍니다.
   python3 tools/hareport.py add-exam --id 김민서 --password 학생비밀번호 --json exam.json
@@ -162,7 +162,9 @@ def cmd_new(a):
         f = DATA / (d + '.bin')
         if f.exists():
             f.unlink()
-    pw = make_password()
+    pw = a.password or make_password()
+    if len(pw) != 20:
+        sys.exit('비밀번호는 20자리여야 합니다.')
     write_bundle({'name': a.name, 'level': a.level, 'exams': [], 'reports': [], 'voka': []}, sid, pw)
     total = count_files()
     while total % 20 != 0:
@@ -223,7 +225,7 @@ def main():
     p = argparse.ArgumentParser(description='HA-REPORT 도구')
     sub = p.add_subparsers(dest='cmd', required=True)
     sub.add_parser('init-admin').set_defaults(f=cmd_init)
-    n = sub.add_parser('new-student'); [n.add_argument('--' + k, required=True) for k in ('name', 'level', 'admin-password')]
+    n = sub.add_parser('new-student'); [n.add_argument('--' + k, required=True) for k in ('name', 'level', 'admin-password')]; n.add_argument('--password')
     n.add_argument('--id'); n.set_defaults(f=cmd_new)
     e = sub.add_parser('add-exam'); [e.add_argument('--' + k, required=True) for k in ('id', 'password', 'json')]; e.set_defaults(f=cmd_exam)
     r = sub.add_parser('add-report'); [r.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
