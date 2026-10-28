@@ -17,12 +17,14 @@ python3 tools/hareport.py init-admin           # 처음 한 번만. 관리 비�
 python3 tools/hareport.py new-student --name 이름 --level B1 --admin-password 관리비밀번호 [--id 아이디]
 python3 tools/hareport.py add-exam   --id 아이디 --password 학생비밀번호 --json exam.json
 python3 tools/hareport.py add-report --id 아이디 --password 학생비밀번호 --level B1 --exam-n 2 --title "과제명" --date 2026-10-28 --html 리포트.html
+python3 tools/hareport.py add-voka   --id 아이디 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
 python3 tools/hareport.py show       --id 아이디 --password 학생비밀번호
 ```
 
 - 아이디는 기본이 이름입니다. 같은 이름이 두 명이면 `--id`로 다른 아이디(예: 김민서2)를 줍니다.
 - 시험과 리포트는 레벨(A1, A2, B1, B2)별로 저장하고, 회차 번호는 레벨 안에서 셉니다. `exam.json`의 `level`과 `add-report`의 `--level`을 생략하면 학생의 기본 레벨로 저장합니다. 같은 레벨에서 같은 회차를 다시 올리면 덮어쓰고, 레벨이 다르면 회차가 같아도 따로 저장합니다.
 - 접속(아이디, 비밀번호)은 레벨과 관계없습니다. 로그인 화면에는 레벨이 나오지 않고, 로그인한 뒤에만 레벨 버튼이 보입니다.
+- VOKA 리포트는 로그인 후 위쪽 "VOKA" 탭에 주차별로 보입니다. `add-voka`는 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다. 과제 첨삭 기록 없이 VOKA만 있는 학생은 VOKA 탭이 먼저 열립니다.
 - 아이디는 NFKC 정규화 후 공백을 없애고 소문자로 바꿔 비교합니다.
 
 `exam.json` 형식(점수는 백분율, 측정하지 않은 영역은 null):

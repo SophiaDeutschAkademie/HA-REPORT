@@ -12,6 +12,8 @@
       같은 이름이 두 명이면 --id 로 다른 아이디를 줍니다.
   python3 tools/hareport.py add-exam --id 김민서 --password 학생비밀번호 --json exam.json
   python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
+  python3 tools/hareport.py add-voka --id 김민서 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
+      VOKA 탭에 주차별 학생용 리포트를 등록합니다. 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -161,7 +163,7 @@ def cmd_new(a):
         if f.exists():
             f.unlink()
     pw = make_password()
-    write_bundle({'name': a.name, 'level': a.level, 'exams': [], 'reports': []}, sid, pw)
+    write_bundle({'name': a.name, 'level': a.level, 'exams': [], 'reports': [], 'voka': []}, sid, pw)
     total = count_files()
     while total % 20 != 0:
         A['decoys'].append(make_decoy()); total += 1
@@ -197,9 +199,22 @@ def cmd_report(a):
     print('리포트 저장: %s %s회차, %d자, 전체 %d개' % (lv, a.exam_n, len(html), len(b['reports'])))
 
 
+def cmd_voka(a):
+    b, sid = read_bundle(a.id, a.password)
+    html = Path(a.html).read_text(encoding='utf-8')
+    lv = a.level or b['level']
+    if lv not in LEVELS:
+        sys.exit('레벨은 %s 중 하나입니다.' % ', '.join(LEVELS))
+    v = {'n': a.week, 'level': lv, 'title': a.title, 'date': a.date, 'html': html}
+    b['voka'] = [x for x in b.get('voka', []) if not (lv_of(x, b) == lv and x['n'] == a.week)] + [v]
+    b['voka'].sort(key=lambda x: (x['n'], x['date']))
+    write_bundle(b, sid, a.password)
+    print('VOKA 리포트 저장: %s %s주차, %d자, 전체 %d개' % (lv, a.week, len(html), len(b['voka'])))
+
+
 def cmd_show(a):
     b, sid = read_bundle(a.id, a.password)
-    for r in b['reports']:
+    for r in b['reports'] + b.get('voka', []):
         r['html'] = '(%d자)' % len(r['html'])
     print(json.dumps(b, ensure_ascii=False, indent=1))
 
@@ -213,6 +228,8 @@ def main():
     e = sub.add_parser('add-exam'); [e.add_argument('--' + k, required=True) for k in ('id', 'password', 'json')]; e.set_defaults(f=cmd_exam)
     r = sub.add_parser('add-report'); [r.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
     r.add_argument('--exam-n', type=int, required=True); r.add_argument('--level'); r.set_defaults(f=cmd_report)
+    v = sub.add_parser('add-voka'); [v.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
+    v.add_argument('--week', type=int, required=True); v.add_argument('--level'); v.set_defaults(f=cmd_voka)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)
