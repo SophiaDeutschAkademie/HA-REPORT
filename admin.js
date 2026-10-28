@@ -392,14 +392,18 @@ async function addStudent(){
   say('저장소 상태를 확인하고 있습니다.');
   var files=await listData(), names={};
   files.forEach(function(f){names[f.name]=1;});
-  if(names[fid+'.bin']) throw new Error('같은 아이디의 파일이 저장소에 이미 있습니다. 아래 "기존 학생 연결"을 쓰십시오.');
+  var fresh=await adminFresh();
+  var reuse=!!names[fid+'.bin']&&fresh.decoys.indexOf(fid)>=0; /* 삭제한 학생의 파일 자리는 가짜 파일로 남아 있어 다시 쓸 수 있습니다 */
+  if(names[fid+'.bin']&&!reuse) throw new Error('같은 아이디의 파일이 저장소에 이미 있습니다. 아래 "기존 학생 연결"을 쓰십시오.');
   var b={name:name,level:lv,exams:[],reports:[],voka:[]}; if(gr) b.grammatik=[];
   say('학생 파일을 암호화하고 있습니다.');
-  var sbytes=await encryptBundle(b,pw,fid), fresh=await adminFresh();
+  var sbytes=await encryptBundle(b,pw,fid);
+  fresh=await adminFresh();
   if(fresh.students.some(function(s){return s.fid===fid;})) throw new Error('이미 명단에 있는 아이디입니다.');
   fresh.students.push({id:idv,fid:fid,name:name,level:lv,password:pw,added:ymd(new Date())});
-  var changes=[{path:'data/'+fid+'.bin',bytes:sbytes}], count=files.length+1, k, d;
-  for(k=0;k<fresh.decoys.length;k++){ /* 기록된 가짜 파일이 있으면 하나를 지워 파일 수를 유지합니다 */
+  var changes=[{path:'data/'+fid+'.bin',bytes:sbytes}], count=files.length+(reuse?0:1), k, d;
+  if(reuse) fresh.decoys=fresh.decoys.filter(function(x){return x!==fid;});
+  else for(k=0;k<fresh.decoys.length;k++){ /* 기록된 가짜 파일이 있으면 하나를 지워 파일 수를 유지합니다 */
    if(names[fresh.decoys[k]+'.bin']){changes.push({path:'data/'+fresh.decoys[k]+'.bin',bytes:null,del:true});fresh.decoys.splice(k,1);count--;break;}
   }
   while(count%20!==0){d=hex10();changes.push({path:'data/'+d+'.bin',bytes:randBytes(decoySize())});fresh.decoys.push(d);count++;}

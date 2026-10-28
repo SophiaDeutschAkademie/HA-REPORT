@@ -200,9 +200,13 @@ def cmd_new(a):
     A = read_admin(a.admin_password)
     login = a.id or a.name
     sid = file_id(login)
-    if (DATA / (sid + '.bin')).exists():
+    exists = (DATA / (sid + '.bin')).exists()
+    reuse = exists and sid in A['decoys']  # 삭제한 학생의 파일 자리는 가짜 파일로 남아 있으므로 다시 쓸 수 있습니다.
+    if exists and not reuse:
         sys.exit('이미 있는 아이디입니다. 같은 이름이면 --id 로 다른 아이디를 주십시오.')
-    if A['decoys']:
+    if reuse:
+        A['decoys'].remove(sid)
+    elif A['decoys']:
         d = A['decoys'].pop()
         f = DATA / (d + '.bin')
         if f.exists():
