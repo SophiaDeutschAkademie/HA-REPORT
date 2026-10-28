@@ -213,7 +213,7 @@ async function flushPending(){
  try{
   say('연결한 비밀번호를 저장하고 있습니다.');
   var fresh=await adminFresh(); mergePending(fresh);
-  await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)}],'데이터 갱신');
+  await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)}],'데이터 갱신');
   A=fresh; pending={};
   say('연결한 비밀번호를 저장했습니다.');
  }catch(e){say(msgOf(e),true);}
@@ -390,6 +390,10 @@ async function checkToken(){ /* 토큰으로 쓰기가 되는지 빈 데이터 �
 }
 async function loadAll(){
  var g=++gen; lastErr=''; loadedAt=null; st={};
+ if(token){ /* 토큰이 있으면 명단도 저장소에서 다시 읽습니다. 로그인 때 읽는 GitHub Pages 사본은 몇 분 늦을 수 있습니다 */
+  try{var fr=await adminFresh(); mergePending(fr); A=fr;}catch(e){lastErr=msgOf(e);}
+  if(g!==gen) return;
+ }
  A.students.forEach(function(s){st[s.fid]={state:s.password?'load':'nopw'};});
  renderTable();
  var jobs=A.students.filter(function(s){return s.password;}), i=0;
@@ -429,7 +433,7 @@ async function addStudent(){
    if(names[fresh.decoys[k]+'.bin']){changes.push({path:'data/'+fresh.decoys[k]+'.bin',bytes:null,del:true});fresh.decoys.splice(k,1);count--;break;}
   }
   while(count%20!==0){d=hex10();changes.push({path:'data/'+d+'.bin',bytes:randBytes(decoySize())});fresh.decoys.push(d);count++;}
-  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
+  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; st[fid]={state:'ok',sum:summarize(b)};
   $('#an').value='';$('#ai').value='';$('#ap').value='';
@@ -466,7 +470,7 @@ async function linkStudent(idv,pw){
   var cur=fresh.students.filter(function(s){return s.fid===fid;})[0];
   if(cur){cur.password=pw;cur.name=b.name;cur.level=b.level;if(!cur.id)cur.id=idv;}
   else fresh.students.push({id:idv,fid:fid,name:b.name,level:b.level,password:pw,added:ymd(new Date())});
-  await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)}],'데이터 갱신');
+  await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)}],'데이터 갱신');
   A=fresh; pending={}; st[fid]={state:'ok',sum:summarize(b)};
   $('#li').value='';$('#lp').value='';
   say(b.name+' 학생을 명단에 반영했습니다.');
@@ -510,7 +514,7 @@ async function changeLevel(s,lv){
   }else{
    cur.level=lv; msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.';
   }
-  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
+  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; if(b) st[s.fid]={state:'ok',sum:summarize(b)};
   say(msg);
@@ -531,7 +535,7 @@ async function removeStudent(s){
   fresh.students.splice(pos,1);
   var changes=[];
   if(has){changes.push({path:'data/'+s.fid+'.bin',bytes:randBytes(decoySize())});fresh.decoys.push(s.fid);}
-  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
+  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; delete st[s.fid]; delete shown[s.fid];
   say(nm+' 학생을 뺐습니다. 반영까지 1~2분 걸립니다.');

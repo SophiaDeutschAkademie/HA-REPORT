@@ -145,7 +145,8 @@ def read_admin(apw):
 
 
 def write_admin(obj, apw):
-    (DATA / (admin_sid() + '.bin')).write_bytes(encrypt(obj, apw, admin_sid()))
+    # 관리자 파일도 학생 파일처럼 가짜 파일과 비슷한 크기로 저장합니다.
+    (DATA / (admin_sid() + '.bin')).write_bytes(encrypt(pad_bundle(obj), apw, admin_sid()))
 
 
 def pad_decoys(A):
@@ -218,7 +219,8 @@ def cmd_pad_students(a):
             continue
         write_bundle(b, s['fid'], s['password'])
         n += 1
-    print('학생 파일 %d개의 크기를 가짜 파일과 비슷하게 맞췄습니다.' % n)
+    write_admin(A, a.admin_password)
+    print('학생 파일 %d개와 관리자 파일의 크기를 가짜 파일과 비슷하게 맞췄습니다.' % n)
 
 
 def cmd_resize_decoys(a):
