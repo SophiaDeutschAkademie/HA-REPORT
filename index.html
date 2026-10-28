@@ -23,11 +23,15 @@ h1{font-size:24px;line-height:1.35;margin:6px 0 4px}
 h2{font-size:18px;margin:0 0 6px;line-height:1.45}
 h3{font-size:15px;margin:0 0 4px}
 .sub{color:var(--mute);margin:0 0 18px;font-size:14.5px}
-.levels{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.lvbtn[aria-pressed="true"],.lvbtn[aria-pressed="true"]:hover{border-color:var(--acc);background:var(--accbg)}
+.lvbtn.none span{opacity:.8}
+.lvsel h2{margin-bottom:10px}
+@media (max-width:420px){.lvbtn{padding:14px 10px}.lvbtn b{font-size:22px}.lvbtn span{font-size:12.5px;line-height:1.5}}
 .lvbtn{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:18px 16px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
 .lvbtn:hover,.lvbtn:focus-visible{border-color:var(--acc);background:#f1f6f3;outline:none}
-.lvbtn b{display:block;font-size:26px;line-height:1.2;letter-spacing:.01em}
-.lvbtn span{color:var(--mute);font-size:13.5px}
+.lvbtn b{display:block;font-size:26px;line-height:1.2;letter-spacing:.01em;margin-bottom:4px}
+.lvbtn span{display:block;color:var(--mute);font-size:13.5px;line-height:1.5}
 .back{border:none;background:none;color:var(--acc);font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:8px;font-size:14px}
 .names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .namebtn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px 12px;font-size:16px;font-weight:600;cursor:pointer;text-align:center}
@@ -117,7 +121,7 @@ var AREAS=[
 ];
 var AVG={k:'avg',name:'평균',color:'#262220',shape:'bar'};
 var app=document.getElementById('app');
-var session=null, hidden={}, objUrls=[];
+var session=null, hidden={}, objUrls=[], curLevel=null;
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function $(s,r){return (r||document).querySelector(s);}
@@ -143,7 +147,7 @@ async function decryptBundle(buf,pw,id){
 /* 로그인 */
 var fails=0;
 function viewLogin(){
- session=null; hidden={}; $('#top').hidden=true;
+ session=null; hidden={}; curLevel=null; $('#top').hidden=true;
  app.innerHTML='<div class="login"><div class="lg-logo"><svg viewBox="0 0 1157 1332" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polygon points="0,320 686,0 686,707 0,1027" fill="#57585A"/><polygon points="235,501 921,153 921,860 235,1180" fill="#ED1B24"/><polygon points="470,655 1157,305 1157,985 470,1332" fill="#F2C811"/></svg></div>'
   +'<div class="lg-brand">Sophia Deutsch Akademie</div><div class="lg-title">과제 첨삭 리포트</div>'
   +'<form class="lg-card" id="lf" autocomplete="on">'
@@ -273,26 +277,71 @@ function summaryHtml(exams){
  return h+'</div>';
 }
 
+/* 레벨별 자료: 시험과 리포트에 level이 없으면 학생 기본 레벨로 봅니다 */
+var SHOW=['A2','B1','B2'], LORDER=['A1','A2','B1','B2'];
+function lvOf(x,d){return x.level||d.level;}
+function levelsOf(d){
+ var L=SHOW.slice(), seen={};
+ (d.exams||[]).concat(d.reports||[]).forEach(function(x){seen[lvOf(x,d)]=1;});
+ Object.keys(seen).forEach(function(k){if(L.indexOf(k)<0&&LORDER.indexOf(k)>=0)L.push(k);});
+ return L.sort(function(p,q){return LORDER.indexOf(p)-LORDER.indexOf(q);});
+}
+function itemsFor(d,L){
+ function pick(a){return (a||[]).filter(function(x){return lvOf(x,d)===L;}).sort(function(p,q){return p.n-q.n;});}
+ return {exams:pick(d.exams),reps:pick(d.reports)};
+}
+function startLevel(d){
+ var best=null;
+ (d.exams||[]).forEach(function(e){if(!best||String(e.date||'')>=String(best.date||''))best=e;});
+ return best?lvOf(best,d):d.level;
+}
+function levelBtns(d){
+ return levelsOf(d).map(function(L){
+  var it=itemsFor(d,L), none=!it.exams.length&&!it.reps.length;
+  return '<button type="button" class="lvbtn'+(none?' none':'')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===curLevel)+'"><b>'+esc(L)+'</b>'
+   +(none?'<span>등록된 기록 없음</span>':'<span>시험 '+it.exams.length+'회</span><span>리포트 '+it.reps.length+'개</span>')+'</button>';
+ }).join('');
+}
+
 /* 화면: 리포트 */
 function viewReport(){
- var d=session.data, exams=d.exams||[], reps=d.reports||[]; $('#top').hidden=false;
- var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">'+esc(d.level)+' 학습 리포트</div></div><button class="btn" id="out">로그아웃</button></div></div>';
- h+='<section class="card"><h2>발전 기록</h2>';
- if(!exams.length) h+='<p class="note">아직 시험 기록이 없습니다.</p>';
+ var d=session.data; $('#top').hidden=false;
+ curLevel=startLevel(d);
+ var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><button class="btn" id="out">로그아웃</button></div></div>';
+ h+='<section class="card lvsel"><h2>레벨 선택</h2><div class="levels" id="lvs" role="group" aria-label="레벨 선택">'+levelBtns(d)+'</div></section>';
+ h+='<div id="lvbody"></div>';
+ h+='<p class="foot">이 화면은 이 브라우저에서만 열려 있습니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
+ app.innerHTML=h;
+ $('#out').addEventListener('click',leave);
+ $('#lvs').addEventListener('click',function(e){
+  var b=e.target.closest('.lvbtn'); if(!b||b.dataset.l===curLevel) return;
+  renderLevel(b.dataset.l);
+ });
+ renderLevel(curLevel); window.scrollTo(0,0);
+}
+function renderLevel(L){
+ var d=session.data, it=itemsFor(d,L), exams=it.exams, reps=it.reps;
+ curLevel=L; window.onresize=null;
+ $('#lvs').innerHTML=levelBtns(d);
+ var body=$('#lvbody');
+ if(!exams.length&&!reps.length){
+  body.innerHTML='<div class="empty"><b>'+esc(L)+'</b> 시험 기록과 리포트가 아직 없습니다.<br>'+esc(L)+' 리포트가 등록되면 여기에 표시됩니다.</div>';
+  return;
+ }
+ var h='<section class="card"><h2>'+esc(L)+' 발전 기록</h2>';
+ if(!exams.length) h+='<p class="note">아직 '+esc(L)+' 시험 기록이 없습니다.</p>';
  else h+='<div class="chart-wrap" id="cw"></div><div class="legend" id="lg">'+legendHtml()+'</div><p class="note">영역 이름을 누르면 선을 숨기거나 다시 보입니다. 작문은 선생님이 추정한 레벨 부합도이고, 나머지는 정답률입니다.</p>'+summaryHtml(exams)+tableHtml(exams);
  h+='</section>';
- h+='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">리포트</h2><button class="btn" id="nw" style="display:none">새 창으로 열기</button></div>';
- if(!reps.length) h+='<p class="note">아직 등록된 리포트가 없습니다.</p>';
+ h+='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">'+esc(L)+' 리포트</h2><button class="btn" id="nw" style="display:none">새 창으로 열기</button></div>';
+ if(!reps.length) h+='<p class="note">아직 등록된 '+esc(L)+' 리포트가 없습니다.</p>';
  else{
   h+='<div class="tabs" id="tabs" role="tablist">';
   reps.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===reps.length-1)+'">'+r.n+'회 · '+esc(r.title)+'<br><small style="font-weight:500;color:#6b665f">'+esc(r.date||'')+'</small></button>';});
-  h+='</div><iframe id="rf" title="리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe>';
+  h+='</div><iframe id="rf" title="'+esc(L)+' 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe>';
  }
- h+='</section><p class="foot">이 화면은 이 브라우저에서만 열려 있습니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
- app.innerHTML=h;
+ h+='</section>';
+ body.innerHTML=h;
  if(exams.length){$('#cw').innerHTML=drawChart(exams);}
- window.scrollTo(0,0);
- $('#out').addEventListener('click',leave);
  var lg=$('#lg');
  if(lg) lg.addEventListener('click',function(e){
   var b=e.target.closest('.chip'); if(!b) return;
@@ -301,16 +350,16 @@ function viewReport(){
  });
  if(exams.length){var rt;window.onresize=function(){clearTimeout(rt);rt=setTimeout(function(){var c=$('#cw');if(c)c.innerHTML=drawChart(exams);},150);};}
  if(reps.length){
-  showReport(reps.length-1);
+  showReport(reps,reps.length-1);
   $('#tabs').addEventListener('click',function(e){
    var t=e.target.closest('.tab'); if(!t) return;
    this.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');});
-   showReport(+t.dataset.i);
+   showReport(reps,+t.dataset.i);
   });
  }
 }
-function showReport(i){
- var r=session.data.reports[i], f=$('#rf'), nw=$('#nw');
+function showReport(reps,i){
+ var r=reps[i], f=$('#rf'), nw=$('#nw');
  f.onload=function(){
   var doc=f.contentDocument; if(!doc) return;
   function fit(){f.style.height=Math.max(420,doc.documentElement.scrollHeight)+'px';}
@@ -331,7 +380,7 @@ function showReport(i){
  };
 }
 function leave(){
- session=null; hidden={};
+ session=null; hidden={}; curLevel=null;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
  window.onresize=null;
  viewLogin(); window.scrollTo(0,0);

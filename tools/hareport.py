@@ -11,8 +11,14 @@
       새 학생을 만들고 20자리 학생 비밀번호를 한 번만 출력합니다. 아이디는 기본이 이름입니다.
       같은 이름이 두 명이면 --id 로 다른 아이디를 줍니다.
   python3 tools/hareport.py add-exam --id 김민서 --password 학생비밀번호 --json exam.json
-  python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
+  python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
+  python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
+      가짜 파일의 크기를 30KB~400KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
+
+레벨: 시험과 리포트는 레벨(A1~B2)별로 저장하고, 회차 번호(n)는 레벨 안에서 셉니다. 로그인한 뒤 학생이 레벨 버튼으로 골라 봅니다.
+  - exam.json 의 level 이나 add-report 의 --level 을 생략하면 학생의 기본 레벨로 저장합니다.
+  - 같은 레벨에서 같은 n 을 다시 올리면 덮어씁니다. 레벨이 다르면 n 이 같아도 따로 저장합니다.
 
 학생 파일과 가짜 파일은 이름과 크기로 구별되지 않고, 전체 파일 수는 20개 단위로 늘어납니다.
 아이디 정규화: NFKC, 공백 제거, 소문자. 파일 이름: PBKDF2-SHA256(아이디, salt=ha-report-id-v1, 200000회)의 앞 10바이트(16진수 20자).
@@ -60,6 +66,16 @@ def decrypt(blob, password, sid):
     return json.loads(AESGCM(derive(password, salt)).decrypt(iv, ct, sid.encode()).decode('utf-8'))
 
 
+def lv_of(x, b):
+    # 레벨이 없는 옛 기록은 학생 기본 레벨로 봅니다.
+    return x.get('level') or b['level']
+
+
+def lv_key(x, b):
+    lv = lv_of(x, b)
+    return (LEVELS.index(lv) if lv in LEVELS else len(LEVELS), x['n'])
+
+
 def norm_id(s):
     return re.sub(r'\s+', '', unicodedata.normalize('NFKC', s).strip()).lower()
 
@@ -72,9 +88,14 @@ def count_files():
     return len([f for f in DATA.glob('*.bin') if f.name != 'admin.bin'])
 
 
+def decoy_size():
+    # 리포트가 쌓이면 학생 파일이 커지므로, 가짜 파일도 30KB~400KB 사이에서 고르게 뽑습니다.
+    return secrets.choice(range(30000, 400000))
+
+
 def make_decoy():
     sid = secrets.token_hex(10)
-    (DATA / (sid + '.bin')).write_bytes(os.urandom(secrets.choice(range(30000, 150000))))
+    (DATA / (sid + '.bin')).write_bytes(os.urandom(decoy_size()))
     return sid
 
 
@@ -117,6 +138,15 @@ def cmd_init(a):
     print('관리 비밀번호: %s' % apw)
 
 
+def cmd_resize_decoys(a):
+    A = read_admin(a.admin_password)
+    for d in A['decoys']:
+        f = DATA / (d + '.bin')
+        if f.exists():
+            f.write_bytes(os.urandom(decoy_size()))
+    print('가짜 파일 %d개의 크기를 다시 정했습니다.' % len(A['decoys']))
+
+
 def cmd_new(a):
     if a.level not in LEVELS:
         sys.exit('레벨은 %s 중 하나입니다.' % ', '.join(LEVELS))
@@ -145,20 +175,26 @@ def cmd_exam(a):
     for k in AREAS:
         if k not in ex.get('scores', {}):
             sys.exit('scores에 %s가 없습니다. (측정하지 않은 영역은 null로 씁니다.)' % k)
-    b['exams'] = [e for e in b['exams'] if e['n'] != ex['n']] + [ex]
-    b['exams'].sort(key=lambda e: e['n'])
+    ex['level'] = ex.get('level') or b['level']
+    if ex['level'] not in LEVELS:
+        sys.exit('레벨은 %s 중 하나입니다.' % ', '.join(LEVELS))
+    b['exams'] = [e for e in b['exams'] if not (lv_of(e, b) == ex['level'] and e['n'] == ex['n'])] + [ex]
+    b['exams'].sort(key=lambda e: lv_key(e, b))
     write_bundle(b, sid, a.password)
-    print('시험 기록 저장: %s회차, 전체 %d회' % (ex['n'], len(b['exams'])))
+    print('시험 기록 저장: %s %s회차, 전체 %d회' % (ex['level'], ex['n'], len(b['exams'])))
 
 
 def cmd_report(a):
     b, sid = read_bundle(a.id, a.password)
     html = Path(a.html).read_text(encoding='utf-8')
-    r = {'n': a.exam_n, 'title': a.title, 'date': a.date, 'html': html}
-    b['reports'] = [x for x in b['reports'] if x['n'] != a.exam_n] + [r]
-    b['reports'].sort(key=lambda x: x['n'])
+    lv = a.level or b['level']
+    if lv not in LEVELS:
+        sys.exit('레벨은 %s 중 하나입니다.' % ', '.join(LEVELS))
+    r = {'n': a.exam_n, 'level': lv, 'title': a.title, 'date': a.date, 'html': html}
+    b['reports'] = [x for x in b['reports'] if not (lv_of(x, b) == lv and x['n'] == a.exam_n)] + [r]
+    b['reports'].sort(key=lambda x: lv_key(x, b))
     write_bundle(b, sid, a.password)
-    print('리포트 저장: %s회차, %d자, 전체 %d개' % (a.exam_n, len(html), len(b['reports'])))
+    print('리포트 저장: %s %s회차, %d자, 전체 %d개' % (lv, a.exam_n, len(html), len(b['reports'])))
 
 
 def cmd_show(a):
@@ -176,7 +212,8 @@ def main():
     n.add_argument('--id'); n.set_defaults(f=cmd_new)
     e = sub.add_parser('add-exam'); [e.add_argument('--' + k, required=True) for k in ('id', 'password', 'json')]; e.set_defaults(f=cmd_exam)
     r = sub.add_parser('add-report'); [r.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
-    r.add_argument('--exam-n', type=int, required=True); r.set_defaults(f=cmd_report)
+    r.add_argument('--exam-n', type=int, required=True); r.add_argument('--level'); r.set_defaults(f=cmd_report)
+    z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)
 
