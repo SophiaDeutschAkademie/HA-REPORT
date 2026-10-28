@@ -26,6 +26,8 @@ h3{font-size:15px;margin:0 0 4px}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .lvbtn[aria-pressed="true"],.lvbtn[aria-pressed="true"]:hover{border-color:var(--acc);background:var(--accbg)}
 .lvbtn.none span{opacity:.8}
+.lvbtn b.lg{font-size:15px;line-height:1.3;display:block;overflow-wrap:anywhere}
+@media (max-width:420px){.lvbtn b.lg{font-size:13.5px}}
 .lvsel h2{margin-bottom:10px}
 @media (max-width:420px){.lvbtn{padding:14px 10px}.lvbtn b{font-size:22px}.lvbtn span{font-size:12.5px;line-height:1.5}}
 .lvbtn{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:18px 16px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
@@ -295,7 +297,7 @@ function summaryHtml(exams){
 }
 
 /* 레벨별 자료: 시험과 리포트에 level이 없으면 학생 기본 레벨로 봅니다 */
-var SHOW=['A2','B1','B2'], LORDER=['A1','A2','B1','B2'];
+var SHOW=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT B1','ZERTIFIKAT B2'], LORDER=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT B1','ZERTIFIKAT B2'];
 function lvOf(x,d){return x.level||d.level;}
 function levelsOf(d){
  var L=SHOW.slice(), seen={};
@@ -315,7 +317,7 @@ function startLevel(d){
 function levelBtns(d){
  return levelsOf(d).map(function(L){
   var it=itemsFor(d,L), none=!it.exams.length&&!it.reps.length;
-  return '<button type="button" class="lvbtn'+(none?' none':'')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===curLevel)+'"><b>'+esc(L)+'</b>'
+  return '<button type="button" class="lvbtn'+(none?' none':'')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===curLevel)+'"><b'+(L.length>3?' class="lg"':'')+'>'+esc(L)+'</b>'
    +(none?'<span>등록된 리포트 없음</span>':'<span>리포트 '+Math.max(it.reps.length,it.exams.length)+'개</span>')+'</button>';
  }).join('');
 }

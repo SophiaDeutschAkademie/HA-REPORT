@@ -5,7 +5,7 @@
 'use strict';
 var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
-var LEVELS=['A1','A2','B1','B2'];
+var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT B1','ZERTIFIKAT B2'];
 var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
 
 function H(){return window.HA;}
@@ -140,7 +140,7 @@ function inFilter(c,f){
 }
 
 /* 화면 */
-var CSS='.wrap.wide{max-width:1040px}'
+var CSS='.wrap.wide{max-width:1040px}.lvs{font:inherit;font-size:13.5px;padding:3px 4px;max-width:150px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}'
 +'.asum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 4px}'
 +'.acell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}'
 +'.acell b{display:block;font-size:26px;line-height:1.3}.acell span{color:var(--mute);font-size:13px}'
