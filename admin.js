@@ -6,7 +6,7 @@
 var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
 var LEVELS=['A1','A2','B1','B2'];
-var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0;
+var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
 
 function H(){return window.HA;}
 function $(s,r){return (r||document).querySelector(s);}
@@ -169,10 +169,31 @@ function injectStyle(){
  if(styled) return;
  var s=document.createElement('style'); s.textContent=CSS; document.head.appendChild(s); styled=true;
 }
-function say(msg,err){var m=$('#alog'); if(!m) return; m.className='msg'+(err?' err':''); m.textContent=msg||'';}
+function say(msg,err){
+ ['#alog','#atmsg'].forEach(function(q){var m=$(q); if(!m) return; m.className='msg'+(err?' err':''); m.textContent=msg||'';});
+}
+function mergePending(obj){
+ Object.keys(pending).forEach(function(f){
+  var p=pending[f], cur=obj.students.filter(function(s){return s.fid===f;})[0];
+  if(cur){cur.password=p.pw;if(p.name)cur.name=p.name;if(p.level)cur.level=p.level;if(!cur.id)cur.id=p.id;}
+  else obj.students.push({id:p.id,fid:f,name:p.name,level:p.level,password:p.pw,added:ymd(new Date())});
+ });
+}
+async function flushPending(){
+ if(working||!Object.keys(pending).length) return;
+ busy(true);
+ try{
+  say('연결한 비밀번호를 저장하고 있습니다.');
+  var fresh=await adminFresh(); mergePending(fresh);
+  await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)}],'데이터 갱신');
+  A=fresh; pending={};
+  say('연결한 비밀번호를 저장했습니다.');
+ }catch(e){say(msgOf(e),true);}
+ finally{busy(false);renderTable();}
+}
 function busy(b){
  working=b;
- document.querySelectorAll('#aman .btn,#atb .btn,#arf').forEach(function(x){x.disabled=b;});
+ document.querySelectorAll('#aman .btn,#atb .btn,#atb select,#arf').forEach(function(x){x.disabled=b;});
 }
 function needToken(){
  if(token) return true;
@@ -183,7 +204,7 @@ function needToken(){
 function open(){
  var sess=H().session(); if(!sess||!sess.data) return;
  S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
- st={}; shown={}; flt='all'; thr=7; lastErr=''; loadedAt=null;
+ st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null;
  try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
  injectStyle();
  var app=H().app; app.className='wrap wide'; $('#top').hidden=false;
@@ -191,7 +212,7 @@ function open(){
  h+='<div class="asum" id="asum"></div>';
  h+='<section class="card asec"><div class="rhead"><h2 style="margin:0">학생 현황</h2><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
   +'<label class="thr">기준 <input id="athr" type="number" min="1" max="90" value="7"> 일 이상 지남</label><button type="button" class="btn" id="arf">새로 불러오기</button></div></div>'
-  +'<div class="tabs" id="aflt" role="tablist" aria-label="보기"></div><div class="tbscroll" id="atb"></div><p class="note" id="anote"></p></section>';
+  +'<div class="tabs" id="aflt" role="tablist" aria-label="보기"></div><div class="msg" id="atmsg" role="status"></div><div class="tbscroll" id="atb"></div><p class="note" id="anote"></p></section>';
  h+='<section class="card asec" id="aman"><h2>학생 관리</h2>'
   +'<h3>GitHub 토큰</h3><p class="note">학생 추가·삭제와 비밀번호 저장에 필요합니다. GitHub의 Settings → Developer settings → Fine-grained tokens에서 HA-REPORT 저장소 하나만 고르고 Contents 권한을 Read and write로 만든 토큰을 붙여 넣으십시오. 토큰은 저장소에 올라가지 않습니다.</p>'
   +'<div class="aform" style="grid-template-columns:1fr auto"><div><label for="atk">토큰</label><input id="atk" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..."></div><div style="display:flex;gap:6px;padding-bottom:0"><button type="button" class="btn main" id="atks">사용</button><button type="button" class="btn" id="atkc">지우기</button></div></div>'
@@ -211,6 +232,12 @@ function open(){
  $('#athr').addEventListener('input',function(){var v=parseInt(this.value,10);if(v>=1&&v<=90){thr=v;renderTable();}});
  $('#aflt').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;flt=t.dataset.k;renderTable();});
  $('#atb').addEventListener('click',onTable);
+ $('#atb').addEventListener('change',function(e){
+  var sel=e.target.closest('select.lvs'); if(!sel) return;
+  var tr=sel.closest('tr'), fid=tr&&tr.dataset.f, s=A.students.filter(function(x){return x.fid===fid;})[0];
+  if(!s||working||LEVELS.indexOf(sel.value)<0){renderTable();return;}
+  changeLevel(s,sel.value);
+ });
  $('#atks').addEventListener('click',useToken);
  $('#atkc').addEventListener('click',clearToken);
  $('#aadd').addEventListener('click',addStudent);
@@ -224,7 +251,7 @@ function open(){
  loadAll();
 }
 function close(){
- gen++; A=null; S=null; st={}; shown={}; token=''; working=false;
+ gen++; A=null; S=null; st={}; shown={}; pending={}; token=''; working=false;
  var a=H()&&H().app; if(a) a.className='wrap';
 }
 
@@ -239,7 +266,9 @@ function useToken(){
  if(!v){say('토큰을 입력하십시오.',true);return;}
  token=v; $('#atk').value='';
  try{if($('#atkr').checked)localStorage.setItem(TKEY,token);else localStorage.removeItem(TKEY);}catch(e){}
- tokenNote(); say('토큰을 설정했습니다. 현황을 다시 불러옵니다.'); loadAll();
+ tokenNote();
+ if(Object.keys(pending).length){flushPending().then(function(){if(A)loadAll();});}
+ else{say('토큰을 설정했습니다. 현황을 다시 불러옵니다.'); loadAll();}
 }
 function clearToken(){
  token=''; try{localStorage.removeItem(TKEY);}catch(e){}
@@ -260,7 +289,8 @@ function rowHtml(s){
  var name=m?m.name:s.name, lvl=m?m.level:s.level;
  var h='<tr class="'+(c.k==='late'?'late':'')+'" data-f="'+esc(s.fid)+'">';
  h+='<td><b>'+esc(name)+'</b>'+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
- h+='<td>'+esc(lvl||'-')+'</td>';
+ var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
+ h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select></td>';
  h+='<td>'+(m&&m.gr?'<span class="badge gr">GRAMMATIK</span>':'-')+'</td>';
  ['ha','vk','gm'].forEach(function(k){
   var q=m&&m[k];
@@ -369,7 +399,7 @@ async function commitChanges(changes,msg){
  await ghCommit(changes,msg,function(i,n){say('저장소에 올리고 있습니다. ('+i+'/'+n+')');});
 }
 async function linkStudent(idv,pw){
- if(working||!needToken()) return;
+ if(working) return;
  if(!idv||!pw){say('아이디와 비밀번호를 입력하십시오.',true);return;}
  busy(true);
  try{
@@ -378,13 +408,47 @@ async function linkStudent(idv,pw){
   try{buf=await fetchFile(fid);}catch(e){if(e&&e.status===404) throw new Error('이 아이디의 파일이 저장소에 없습니다.');throw e;}
   var b;
   try{b=await H().decryptBundle(buf,pw,fid);}catch(e){throw new Error('비밀번호가 맞지 않습니다.');}
-  var fresh=await adminFresh(), cur=fresh.students.filter(function(s){return s.fid===fid;})[0];
+  if(!token){ /* 토큰이 없으면 이 화면에만 반영하고, 토큰을 입력할 때 저장합니다 */
+   var c0=A.students.filter(function(s){return s.fid===fid;})[0];
+   if(c0){c0.password=pw;c0.name=b.name;c0.level=b.level;if(!c0.id)c0.id=idv;}
+   else A.students.push({id:idv,fid:fid,name:b.name,level:b.level,password:pw,added:ymd(new Date())});
+   pending[fid]={id:idv,pw:pw,name:b.name,level:b.level};
+   st[fid]={state:'ok',sum:summarize(b)};
+   $('#li').value='';$('#lp').value='';
+   say(b.name+' 학생의 비밀번호가 맞습니다. 현황에는 반영했지만 아직 저장하지는 않았습니다. 아래 "GitHub 토큰"을 입력하면 저장합니다. 저장하지 않고 로그아웃하면 사라집니다.');
+   return;
+  }
+  var fresh=await adminFresh(); mergePending(fresh);
+  var cur=fresh.students.filter(function(s){return s.fid===fid;})[0];
   if(cur){cur.password=pw;cur.name=b.name;cur.level=b.level;if(!cur.id)cur.id=idv;}
   else fresh.students.push({id:idv,fid:fid,name:b.name,level:b.level,password:pw,added:ymd(new Date())});
   await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)}],'데이터 갱신');
-  A=fresh; st[fid]={state:'ok',sum:summarize(b)};
+  A=fresh; pending={}; st[fid]={state:'ok',sum:summarize(b)};
   $('#li').value='';$('#lp').value='';
   say(b.name+' 학생을 명단에 반영했습니다.');
+ }catch(e){say(msgOf(e),true);}
+ finally{busy(false);renderTable();}
+}
+async function changeLevel(s,lv){
+ if(working) return;
+ if(!needToken()){renderTable();return;}
+ busy(true);
+ try{
+  say('저장소 상태를 확인하고 있습니다.');
+  var fresh=await adminFresh(), cur=fresh.students.filter(function(x){return x.fid===s.fid;})[0];
+  if(!cur) throw new Error('명단에서 이미 빠져 있습니다. 새로 불러오기를 눌러 확인하십시오.');
+  var changes=[], nm=cur.name, b=null;
+  if(cur.password){ /* 학생 파일 안의 기본 레벨도 함께 바꿉니다 */
+   var buf=await fetchFile(s.fid);
+   try{b=await H().decryptBundle(buf,cur.password,s.fid);}catch(e){throw new Error('저장된 비밀번호로 학생 파일을 열지 못했습니다. 비밀번호를 다시 연결하십시오.');}
+   b.level=lv; nm=b.name;
+   changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(b,cur.password,s.fid)});
+  }
+  cur.level=lv;
+  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
+  await commitChanges(changes,'데이터 갱신');
+  A=fresh; if(b) st[s.fid]={state:'ok',sum:summarize(b)};
+  say(nm+' 학생의 기본 레벨을 '+lv+'로 바꿨습니다. 반영까지 1~2분 걸립니다.');
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
 }
