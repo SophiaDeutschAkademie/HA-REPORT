@@ -156,9 +156,9 @@ function cls(s){
  if(x.state==='missing') return {k:'warn',label:'파일 없음',rank:1,n:0};
  if(x.state==='badpw') return {k:'warn',label:'비밀번호 불일치',rank:1,n:0};
  if(x.state!=='ok') return {k:'warn',label:'불러오기 실패',rank:1,n:0};
- var m=x.sum, base=m.last||parseD(s.added), n=base?daysAgo(base):0;
+ var m=x.sum, n=m.last?daysAgo(m.last):0; /* 제출일이 없으면 날짜를 셀 수 없으므로 빨간색으로 표시하지 않습니다 */
  if(m.last) return n>=thr?{k:'late',label:n+'일 경과',rank:0,n:n}:{k:'ok',label:'정상',rank:3,n:n};
- return n>=thr?{k:'late',label:'기록 없음 · '+n+'일',rank:0,n:n,norec:true}:{k:'norec',label:'기록 없음',rank:2,n:n};
+ return {k:'norec',label:'제출 없음',rank:2,n:0};
 }
 function inFilter(c,f){
  if(f==='all') return true;
@@ -176,6 +176,7 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'table.at{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}'
 +'.at th,.at td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}'
 +'.at th{font-size:12.5px;color:var(--mute);font-weight:600;white-space:nowrap}'
++'.at th small{display:block;font-weight:400;font-size:11.5px}'
 +'.at td small{display:block;color:var(--mute);font-size:12px;line-height:1.45}'
 +'.at tr.late td{background:#fdeceb}.at tr.late a.nm,.at tr.late b{color:var(--bad)}.at tr.late small.ago{color:var(--bad);font-weight:700}'
 +'.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700;white-space:nowrap}'
@@ -314,7 +315,7 @@ function summaryHtml(){
  A.students.forEach(function(s){var q=cls(s);if(q.k==='late')c.late++;if(q.k==='norec'||q.norec)c.norec++;if(q.k==='warn')c.warn++;if(q.k==='ok')c.ok++;});
  return {c:c,html:'<div class="acell"><b>'+c.all+'</b><span>전체 학생</span></div>'
   +'<div class="acell late"><b>'+c.late+'</b><span>'+thr+'일 이상 지남</span></div>'
-  +'<div class="acell"><b>'+c.norec+'</b><span>기록 없음</span></div>'
+  +'<div class="acell"><b>'+c.norec+'</b><span>제출 없음</span></div>'
   +'<div class="acell warn"><b>'+c.warn+'</b><span>확인 필요</span></div>'};
 }
 function rowHtml(s){
@@ -330,7 +331,6 @@ function rowHtml(s){
  });
  var sub2='';
  if(m&&m.last) sub2='<small class="ago">마지막 제출 '+fmtD(m.last)+' · '+agoText(daysAgo(m.last))+'</small>';
- else if(m){var ad=parseD(s.added);if(ad) sub2='<small class="ago">'+(daysAgo(ad)===0?'오늘 등록':'등록 '+daysAgo(ad)+'일 전')+'</small>';}
  h+='<td><span class="badge '+c.k+'">'+esc(c.label)+'</span>'+sub2+'</td>';
  var mg='';
  if(s.password) mg+='<button type="button" class="btn sm" data-a="pw">'+(shown[s.fid]?'숨기기':'비밀번호')+'</button> ';
@@ -343,16 +343,16 @@ function renderTable(){
  if(!A||!$('#atb')) return;
  var keep={}; document.querySelectorAll('#atb tr[data-f] .rp').forEach(function(i){if(i.value)keep[i.closest('tr').dataset.f]=i.value;});
  var sm=summaryHtml(); $('#asum').innerHTML=sm.html;
- var F=[['all','전체',sm.c.all],['late',thr+'일 이상 지남',sm.c.late],['norec','기록 없음',sm.c.norec],['ok','정상',sm.c.ok],['warn','확인 필요',sm.c.warn]];
+ var F=[['all','전체',sm.c.all],['late',thr+'일 이상 지남',sm.c.late],['norec','제출 없음',sm.c.norec],['ok','정상',sm.c.ok],['warn','확인 필요',sm.c.warn]];
  $('#aflt').innerHTML=F.map(function(f){return '<button type="button" class="tab" role="tab" data-k="'+f[0]+'" aria-selected="'+(flt===f[0])+'">'+f[1]+' '+f[2]+'</button>';}).join('');
  var rows=A.students.map(function(s){return {s:s,c:cls(s)};}).filter(function(r){return inFilter(r.c,flt);});
  rows.sort(function(p,q){return p.c.rank-q.c.rank||q.c.n-p.c.n||String(p.s.name).localeCompare(String(q.s.name),'ko');});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
- else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭</th><th>VOKA</th><th>GRAMMATIK</th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
+ else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
- n.push('마지막 제출은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 가운데 가장 늦은 날짜입니다. 마지막 제출 후 기준 일수 이상 지나면 빨간색으로 표시하고 맨 위에 둡니다. 선생님이 올린 기록의 날짜 기준이라 학생이 실제로 낸 날과 다를 수 있습니다. 기록이 아직 없는 학생은 명단에 넣은 날부터 셉니다.');
+ n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시하고 맨 위에 둡니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
  if(loadedAt) n.push(pad2(loadedAt.getHours())+':'+pad2(loadedAt.getMinutes())+'에 불러왔습니다.'+(token?'':' 토큰이 없으면 GitHub Pages의 복사본을 읽기 때문에 최대 10분쯤 늦을 수 있습니다.'));
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');
