@@ -209,7 +209,7 @@ def cmd_new(a):
     if len(pw) != 20:
         sys.exit('비밀번호는 20자리여야 합니다.')
     bundle = {'name': a.name, 'level': a.level, 'exams': [], 'reports': [], 'voka': []}
-    if a.grammatik:
+    if a.grammatik or a.level == 'GRAMMATIK':
         bundle['grammatik'] = []
     write_bundle(bundle, sid, pw)
     A['students'].append({'id': login, 'fid': sid, 'name': a.name, 'level': a.level, 'password': pw, 'added': today_kst()})

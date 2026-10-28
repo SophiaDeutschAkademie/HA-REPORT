@@ -219,9 +219,9 @@ function open(){
   +'<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)"><input type="checkbox" id="atkr"> 이 브라우저에 기억합니다</label><p class="note" id="atkn"></p>'
   +'<h3>학생 추가</h3><p class="note">새 학생 파일을 만들고 명단에 넣습니다. 비밀번호는 비워 두면 20자리로 자동 생성합니다.</p>'
   +'<div class="aform"><div><label for="an">이름</label><input id="an" type="text" autocomplete="off"></div><div><label for="ai">아이디</label><input id="ai" type="text" autocomplete="off" placeholder="비우면 이름"></div>'
-  +'<div><label for="al">기본 레벨</label><select id="al">'+LEVELS.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div>'
+  +'<div><label for="al">레벨·반</label><select id="al">'+LEVELS.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div>'
   +'<div><label for="ap">비밀번호</label><input id="ap" type="text" autocomplete="off" placeholder="비우면 자동 생성"></div>'
-  +'<label class="chk"><input type="checkbox" id="ag"> 문법반</label><div><button type="button" class="btn main" id="aadd">추가</button></div></div>'
+  +'<div><button type="button" class="btn main" id="aadd">추가</button></div></div>'
   +'<h3>기존 학생 연결</h3><p class="note">이미 저장소에 있는 학생을 명단에 넣습니다. 아이디와 비밀번호가 맞아야 합니다.</p>'
   +'<div class="aform"><div><label for="li">아이디</label><input id="li" type="text" autocomplete="off"></div><div><label for="lp">비밀번호</label><input id="lp" type="password" autocomplete="off"></div><div><button type="button" class="btn main" id="alk">연결</button></div></div>'
   +'<div class="msg" id="alog" role="status"></div><div id="aout"></div></section>';
@@ -286,12 +286,11 @@ function summaryHtml(){
 }
 function rowHtml(s){
  var x=st[s.fid]||{state:'load'}, c=cls(s), m=x.state==='ok'?x.sum:null;
- var name=m?m.name:s.name, lvl=m?m.level:s.level;
+ var name=m?m.name:s.name, lvl=m?m.level:s.level; if(m&&m.gr) lvl='GRAMMATIK'; /* 문법반은 레벨 GRAMMATIK으로 합쳐 보입니다 */
  var h='<tr class="'+(c.k==='late'?'late':'')+'" data-f="'+esc(s.fid)+'">';
  h+='<td><b>'+esc(name)+'</b>'+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
  var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
  h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select></td>';
- h+='<td>'+(m&&m.gr?'<span class="badge gr">GRAMMATIK</span>':'-')+'</td>';
  ['ha','vk','gm'].forEach(function(k){
   var q=m&&m[k];
   h+='<td>'+(q&&q.last?fmtD(q.last)+'<small>'+q.n+'개</small>':'-')+'</td>';
@@ -317,7 +316,7 @@ function renderTable(){
  rows.sort(function(p,q){return p.c.rank-q.c.rank||q.c.n-p.c.n||String(p.s.name).localeCompare(String(q.s.name),'ko');});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
- else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨</th><th>반</th><th>과제 첨삭</th><th>VOKA</th><th>GRAMMATIK</th><th>마지막 등록</th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
+ else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭</th><th>VOKA</th><th>GRAMMATIK</th><th>마지막 등록</th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
  n.push('마지막 등록은 과제 첨삭 시험 기록·리포트, VOKA, GRAMMATIK 리포트 가운데 가장 늦은 날짜입니다. 선생님이 올린 기록의 날짜 기준이라 학생이 실제로 낸 날과 다를 수 있습니다. 기록이 아직 없는 학생은 명단에 넣은 날부터 셉니다.');
@@ -363,7 +362,7 @@ async function loadAll(){
 /* 학생 추가·연결·삭제 */
 async function addStudent(){
  if(working||!needToken()) return;
- var name=$('#an').value.trim(), idv=$('#ai').value.trim()||name, lv=$('#al').value, gr=$('#ag').checked, pw=$('#ap').value.trim();
+ var name=$('#an').value.trim(), idv=$('#ai').value.trim()||name, lv=$('#al').value, gr=(lv==='GRAMMATIK'), pw=$('#ap').value.trim();
  if(!name){say('이름을 입력하십시오.',true);return;}
  if(pw&&pw.length!==20){say('비밀번호는 20자리여야 합니다. 비워 두면 자동으로 만듭니다.',true);return;}
  pw=pw||genPw();
@@ -388,7 +387,7 @@ async function addStudent(){
   changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; st[fid]={state:'ok',sum:summarize(b)};
-  $('#an').value='';$('#ai').value='';$('#ap').value='';$('#ag').checked=false;
+  $('#an').value='';$('#ai').value='';$('#ap').value='';
   var cp='아이디: '+idv+'\n비밀번호: '+pw;
   $('#aout').innerHTML='<div class="cred"><b>'+esc(name)+' 학생을 추가했습니다.</b><div>아이디 <span class="mono">'+esc(idv)+'</span></div><div>비밀번호 <span class="mono">'+esc(pw)+'</span> <button type="button" class="btn sm" data-a="copy" data-t="'+esc(cp)+'">복사</button></div><p class="note">GitHub Pages에 반영되기까지 1~2분 걸립니다. 반영된 뒤에 학생이 로그인할 수 있습니다. 비밀번호는 위 학생 현황의 "비밀번호" 버튼으로 다시 볼 수 있습니다.</p></div>';
   say('');
@@ -438,9 +437,14 @@ async function changeLevel(s,lv){
   var fresh=await adminFresh(), cur=fresh.students.filter(function(x){return x.fid===s.fid;})[0];
   if(!cur) throw new Error('명단에서 이미 빠져 있습니다. 새로 불러오기를 눌러 확인하십시오.');
   var changes=[], nm=cur.name, b=null;
-  if(cur.password){ /* 학생 파일 안의 기본 레벨도 함께 바꿉니다 */
+  if(cur.password){ /* 학생 파일 안의 기본 레벨과 문법반 설정도 함께 바꿉니다 */
    var buf=await fetchFile(s.fid);
    try{b=await H().decryptBundle(buf,cur.password,s.fid);}catch(e){throw new Error('저장된 비밀번호로 학생 파일을 열지 못했습니다. 비밀번호를 다시 연결하십시오.');}
+   if(lv==='GRAMMATIK'){ if(!Array.isArray(b.grammatik)) b.grammatik=[]; }
+   else if(Array.isArray(b.grammatik)){ /* 레벨과 반을 하나로 보므로, 리포트가 없을 때만 반을 풉니다 */
+    if(b.grammatik.length) throw new Error('GRAMMATIK 리포트가 '+b.grammatik.length+'개 등록되어 있어 다른 레벨로 바꿀 수 없습니다.');
+    delete b.grammatik;
+   }
    b.level=lv; nm=b.name;
    changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(b,cur.password,s.fid)});
   }
@@ -448,7 +452,7 @@ async function changeLevel(s,lv){
   changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(fresh,S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; if(b) st[s.fid]={state:'ok',sum:summarize(b)};
-  say(nm+' 학생의 기본 레벨을 '+lv+'로 바꿨습니다. 반영까지 1~2분 걸립니다.');
+  say(nm+' 학생의 레벨(반)을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.');
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
 }
