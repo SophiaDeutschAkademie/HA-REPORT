@@ -83,6 +83,11 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
 .tab{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-size:14px;font-weight:600;cursor:pointer;text-align:left}
 .tab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2f5a47}
+#tabs,#gtabs{flex-direction:column;flex-wrap:nowrap;gap:6px}
+#tabs .tab,#gtabs .tab{display:grid;grid-template-columns:3.2em 1fr;align-items:baseline;column-gap:10px;width:100%;padding:9px 12px}
+.tab .tn{white-space:nowrap}
+.tab .tt{display:block;overflow-wrap:anywhere}
+.tab .tt small{display:block;font-weight:500;color:#6b665f;margin-top:1px}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 iframe#rf,iframe#vf,iframe#gf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
 .foot{color:var(--mute);font-size:12.5px;text-align:center;margin-top:28px}
@@ -355,7 +360,7 @@ function renderGrammatik(){
  if(!G.length){pane.innerHTML='<div class="empty"><b>GRAMMATIK</b> 리포트가 아직 없습니다.<br>GRAMMATIK 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
  var h='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">GRAMMATIK 리포트</h2><button class="btn" id="gnw" style="display:none">새 창으로 열기</button></div>';
  h+='<div class="tabs" id="gtabs" role="tablist">';
- G.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===G.length-1)+'">'+r.n+'회 · '+esc(r.title)+'<br><small style="font-weight:500;color:#6b665f">'+esc(r.date||'')+'</small></button>';});
+ G.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===G.length-1)+'"><span class="tn">'+r.n+'회</span><span class="tt">'+esc(r.title)+'<small>'+esc(r.date||'')+'</small></span></button>';});
  h+='</div><iframe id="gf" title="GRAMMATIK 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe></section>';
  pane.innerHTML=h;
  showReport(G,G.length-1,'gf','gnw');
@@ -485,7 +490,7 @@ function renderLevel(L){
  if(!reps.length) h+='<p class="note">아직 등록된 '+esc(L)+' 리포트가 없습니다.</p>';
  else{
   h+='<div class="tabs" id="tabs" role="tablist">';
-  reps.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===reps.length-1)+'">'+r.n+'회 · '+esc(r.title)+'<br><small style="font-weight:500;color:#6b665f">'+esc(r.date||'')+'</small></button>';});
+  reps.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===reps.length-1)+'"><span class="tn">'+r.n+'회</span><span class="tt">'+esc(r.title)+'<small>'+esc(r.date||'')+'</small></span></button>';});
   h+='</div><iframe id="rf" title="'+esc(L)+' 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe>';
  }
  h+='</section>';
