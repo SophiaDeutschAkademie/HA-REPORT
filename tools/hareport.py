@@ -14,7 +14,7 @@
   python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
-      가짜 파일의 크기를 30KB~400KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
+      가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
 
 레벨: 시험과 리포트는 레벨(A1~B2)별로 저장하고, 회차 번호(n)는 레벨 안에서 셉니다. 로그인한 뒤 학생이 레벨 버튼으로 골라 봅니다.
   - exam.json 의 level 이나 add-report 의 --level 을 생략하면 학생의 기본 레벨로 저장합니다.
@@ -89,8 +89,8 @@ def count_files():
 
 
 def decoy_size():
-    # 리포트가 쌓이면 학생 파일이 커지므로, 가짜 파일도 30KB~400KB 사이에서 고르게 뽑습니다.
-    return secrets.choice(range(30000, 400000))
+    # 리포트가 쌓이면 학생 파일이 커지므로, 가짜 파일도 30KB~900KB 사이에서 고르게 뽑습니다.
+    return secrets.choice(range(30000, 900000))
 
 
 def make_decoy():
