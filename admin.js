@@ -84,16 +84,30 @@ async function ghCommit(changes,msg,onStep){
  var nt=await gh('git/trees',{method:'POST',body:{base_tree:cm.tree.sha,tree:tree}});
  var nc=await gh('git/commits',{method:'POST',body:{message:msg,tree:nt.sha,parents:[head]}});
  await gh('git/refs/heads/'+GH.branch,{method:'PATCH',body:{sha:nc.sha,force:false}});
+ dirCache={t:0,l:null};
+}
+/* GitHub의 contents raw 응답은 작은 파일을 글자 코드로 바꿔 내용을 깨뜨릴 수 있습니다. 그래서 파일 목록에서 sha를 얻고 Git blob(base64)으로 읽습니다. */
+var dirCache={t:0,l:null};
+async function dirList(force){
+ if(!force&&dirCache.l&&Date.now()-dirCache.t<15000) return dirCache.l;
+ var l=await gh('contents/data?ref='+GH.branch); dirCache={t:Date.now(),l:l}; return l;
+}
+function b64dec(s){var bin=atob(String(s).replace(/\s/g,'')),u=new Uint8Array(bin.length),i;for(i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
+async function readData(name,force){
+ var f=(await dirList(force)).filter(function(x){return x.name===name;})[0];
+ if(!f){var e=new Error('nf');e.status=404;throw e;}
+ var bl=await gh('git/blobs/'+f.sha);
+ return b64dec(bl.content);
 }
 async function adminFresh(){
- var buf=await gh('contents/data/'+S.sid+'.bin?ref='+GH.branch,{raw:true});
+ var buf=await readData(S.sid+'.bin',true);
  var b=await H().decryptBundle(buf,S.pw,S.sid);
  b.students=b.students||[]; b.decoys=b.decoys||[];
  return b;
 }
 async function fetchFile(fid){
  if(token){ /* 토큰이 읽기에서도 거부되면 공개 사본(GitHub Pages)으로 읽습니다 */
-  try{return await gh('contents/data/'+fid+'.bin?ref='+GH.branch,{raw:true});}
+  try{return await readData(fid+'.bin');}
   catch(e){if(!(e&&(e.status===401||e.status===403))) throw e;}
  }
  var r=await fetch('data/'+fid+'.bin',{cache:'no-store'});
