@@ -346,7 +346,8 @@ function renderTable(){
  var F=[['all','전체',sm.c.all],['late',thr+'일 이상 지남',sm.c.late],['norec','제출 없음',sm.c.norec],['ok','정상',sm.c.ok],['warn','확인 필요',sm.c.warn]];
  $('#aflt').innerHTML=F.map(function(f){return '<button type="button" class="tab" role="tab" data-k="'+f[0]+'" aria-selected="'+(flt===f[0])+'">'+f[1]+' '+f[2]+'</button>';}).join('');
  var rows=A.students.map(function(s){return {s:s,c:cls(s)};}).filter(function(r){return inFilter(r.c,flt);});
- rows.sort(function(p,q){return p.c.rank-q.c.rank||q.c.n-p.c.n||String(p.s.name).localeCompare(String(q.s.name),'ko');});
+ var KO=new Intl.Collator('ko');
+ rows.sort(function(p,q){return KO.compare(String(p.s.name||''),String(q.s.name||''));});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
  else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
