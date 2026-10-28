@@ -72,6 +72,12 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .up{color:var(--good);font-weight:700}
 .down{color:var(--bad);font-weight:700}
 .same{color:var(--mute);font-weight:600}
+.vgraph .vsum{margin:4px 0 8px;font-size:14.5px}
+.vgraph .vsum b{color:var(--acc)}
+.vgraph .tabs{margin:6px 0 4px}
+.vgraph svg.chart .pt{cursor:pointer}
+.vgraph .vlg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0;font-size:12.5px;color:var(--mute)}
+.vgraph .vlg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .tbscroll{overflow-x:auto}
 .sumtxt p{margin:2px 0}
 .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
@@ -359,22 +365,108 @@ function renderGrammatik(){
   showReport(G,+t.dataset.i,'gf','gnw');
  });
 }
+/* VOKA 학습 성과 그래프: 각 주차 리포트에 적힌 숫자를 읽어서 그립니다 */
+var VMET=[{k:'score',name:'주간 점수',u:'점'},{k:'learn',name:'학습 완료 단어',u:'%'},{k:'days',name:'공부한 날',u:'일'}];
+var VNOTE={score:'각 주차 리포트에 적힌 점수예요.',learn:'학습을 끝낸 단어가 전체 단어에서 차지하는 비율이에요. 각 주차 리포트에 적힌 숫자예요.',days:'한 주에 공부한 날 수예요. 각 주차 리포트에 적힌 숫자예요.'};
+var GRC={S:'#2f5a47',A:'#6f9a85',B:'#a39d8f'};
+var vm={cur:'score',sel:0,st:[]};
+function vokaStats(r){
+ var o={n:r.n,score:null,grade:'',learn:null,days:null};
+ try{
+  var doc=new DOMParser().parseFromString(r.html,'text/html'), sc=doc.querySelector('.score'), m;
+  if(sc){m=(sc.firstChild?sc.firstChild.textContent:sc.textContent).match(/([A-Z])\s*(\d+)/); if(m){o.grade=m[1];o.score=+m[2];}}
+  doc.querySelectorAll('details li').forEach(function(li){
+   var b=li.querySelector('b'); if(!b) return;
+   var v=b.textContent.trim(), lab=li.textContent.replace(b.textContent,'').trim(), q;
+   if(o.learn==null&&/^(학습됨|학습 완료|테스트를 통과한)/.test(lab)){
+    if((q=v.match(/^([\d,]+)\s*\/\s*([\d,]+)$/))&&+q[2].replace(/,/g,'')>0) o.learn=Math.round(+q[1].replace(/,/g,'')/+q[2].replace(/,/g,'')*100);
+    else if((q=v.match(/^(\d+)%$/))) o.learn=+q[1];
+   }
+   if(o.days==null&&/^(공부한 날|카드를 넘긴 날|앱을 연 날)/.test(lab)&&(q=v.match(/^(\d+)일$/))) o.days=+q[1];
+  });
+ }catch(e){}
+ return o;
+}
+function vokaChart(){
+ var st=vm.st, k=vm.cur, W=Math.max(300,Math.min(720,($('#vgw')&&$('#vgw').clientWidth)||680)), H=W<520?230:250, L=W<520?36:44, R=W<520?16:24, T=22, B=44, pw=W-L-R, ph=H-T-B, n=st.length;
+ var vals=st.map(function(x){return x[k];}), nn=vals.filter(function(v){return v!=null;}), lo=0, hi=100, step=20;
+ if(k==='score'){hi=Math.max(100,Math.ceil(Math.max.apply(null,nn)/10)*10); lo=Math.max(0,Math.floor((Math.min.apply(null,nn)-6)/10)*10); step=(hi-lo)>50?20:10;}
+ else if(k==='days'){hi=Math.max(7,Math.max.apply(null,nn)); lo=0; step=hi>10?2:1;}
+ function X(i){return n===1?L+pw/2:L+pw*i/(n-1);}
+ function Y(v){return T+ph*(1-(v-lo)/(hi-lo));}
+ var g='', v;
+ for(v=lo;v<=hi;v+=step) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#e3e0d8"/><text x="'+(L-8)+'" y="'+(Y(v)+4)+'" font-size="12" text-anchor="end" fill="#6b665f">'+v+'</text>';
+ st.forEach(function(x,i){g+='<text x="'+X(i)+'" y="'+(H-B+22)+'" font-size="13" font-weight="'+(i===vm.sel?700:500)+'" text-anchor="middle" fill="'+(i===vm.sel?'#2f5a47':'#262220')+'">'+x.n+'주</text>';});
+ var segs=[],cur=[];
+ vals.forEach(function(val,i){if(val==null){if(cur.length)segs.push(cur);cur=[];}else cur.push(X(i)+','+Y(val));});
+ if(cur.length)segs.push(cur);
+ segs.forEach(function(sg){if(sg.length>1)g+='<polyline points="'+sg.join(' ')+'" fill="none" stroke="#456b5a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';});
+ st.forEach(function(x,i){
+  var val=vals[i]; if(val==null) return;
+  var c=(k==='score'&&GRC[x.grade])||'#456b5a', on=i===vm.sel;
+  g+='<g class="pt" data-i="'+i+'"><circle cx="'+X(i)+'" cy="'+Y(val)+'" r="16" fill="transparent"/>'+(on?'<circle cx="'+X(i)+'" cy="'+Y(val)+'" r="9" fill="none" stroke="'+c+'" stroke-width="1.6" opacity=".45"/>':'')+'<circle cx="'+X(i)+'" cy="'+Y(val)+'" r="5.5" fill="'+c+'" stroke="#fff" stroke-width="1.5"/><text x="'+X(i)+'" y="'+(Y(val)-12)+'" font-size="12.5" font-weight="700" text-anchor="middle" fill="#262220">'+val+'</text><title>'+x.n+'주차 '+VMET.filter(function(m){return m.k===k;})[0].name+' '+val+VMET.filter(function(m){return m.k===k;})[0].u+'</title></g>';
+ });
+ return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="주차별 '+VMET.filter(function(m){return m.k===k;})[0].name+' 그래프">'+g+'</svg>';
+}
+function vokaSummary(){
+ var k=vm.cur, m=VMET.filter(function(x){return x.k===k;})[0], p=vm.st.filter(function(x){return x[k]!=null;});
+ if(p.length<2) return '';
+ var a=p[0], z=p[p.length-1], d=z[k]-a[k], u=m.u==='%'?'%':m.u, dd=Math.abs(d)+(m.u==='%'?'%p':m.u);
+ if(d===0) return a.n+'주차와 '+z.n+'주차 모두 <b>'+z[k]+u+'</b>'+(m.u==='%'?'예요.':'이에요.');
+ return a.n+'주차 <b>'+a[k]+u+'</b>에서 '+z.n+'주차 <b>'+z[k]+u+'</b>'+(m.u==='점'?'으로 ':'로 ')+dd+(d>0?' 올랐어요.':' 내려갔어요.');
+}
+function vokaDraw(){
+ var w=$('#vgw'); if(!w) return;
+ w.innerHTML=vokaChart();
+ $('#vgs').innerHTML=vokaSummary();
+ $('#vgn').textContent=VNOTE[vm.cur];
+ $('#vlg').style.display=vm.cur==='score'?'':'none';
+}
+function vokaGraphHtml(V){
+ vm.st=V.map(vokaStats); vm.sel=V.length-1;
+ var av=VMET.filter(function(m){return vm.st.filter(function(x){return x[m.k]!=null;}).length>=2;});
+ if(!av.length) return '';
+ if(!av.some(function(m){return m.k===vm.cur;})) vm.cur=av[0].k;
+ var h='<section class="card vgraph" style="padding:16px"><h2 style="margin:0 0 4px">학습 성과</h2><div class="vsum" id="vgs"></div>';
+ if(av.length>1){h+='<div class="tabs" id="vmt" role="tablist">'; av.forEach(function(m){h+='<button class="tab" role="tab" data-k="'+m.k+'" aria-selected="'+(m.k===vm.cur)+'">'+m.name+'</button>';}); h+='</div>';}
+ h+='<div class="chart-wrap" id="vgw"></div><div class="vlg" id="vlg"><span><i style="background:'+GRC.S+'"></i>S</span><span><i style="background:'+GRC.A+'"></i>A</span><span><i style="background:'+GRC.B+'"></i>B</span></div><p class="note" id="vgn"></p><p class="note">점을 누르면 그 주차 리포트로 이동해요.</p></section>';
+ return h;
+}
 /* VOKA 탭: 주차별 학생용 리포트 */
 function renderVoka(){
  var d=session.data, V=(d.voka||[]).slice().sort(function(p,q){return p.n-q.n;}), pane=$('#pane-voka');
  window.onresize=null;
  if(!V.length){pane.innerHTML='<div class="empty"><b>VOKA</b> 리포트가 아직 없습니다.<br>VOKA 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
- var h='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">VOKA 주간 리포트</h2><button class="btn" id="vnw" style="display:none">새 창으로 열기</button></div>';
+ var h=vokaGraphHtml(V);
+ h+='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">VOKA 주간 리포트</h2><button class="btn" id="vnw" style="display:none">새 창으로 열기</button></div>';
  h+='<div class="tabs" id="vtabs" role="tablist">';
  V.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===V.length-1)+'">'+r.n+'주차</button>';});
  h+='</div><iframe id="vf" title="VOKA 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe></section>';
  pane.innerHTML=h;
  showReport(V,V.length-1,'vf','vnw');
+ function pick(i){
+  var tabs=$('#vtabs').querySelectorAll('.tab');
+  tabs.forEach(function(x,j){x.setAttribute('aria-selected',j===i?'true':'false');});
+  showReport(V,i,'vf','vnw'); vm.sel=i; vokaDraw();
+ }
  $('#vtabs').addEventListener('click',function(e){
   var t=e.target.closest('.tab'); if(!t) return;
-  this.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');});
-  showReport(V,+t.dataset.i,'vf','vnw');
+  pick(+t.dataset.i);
  });
+ if($('#vgw')){
+  vokaDraw();
+  var mt=$('#vmt');
+  if(mt) mt.addEventListener('click',function(e){
+   var t=e.target.closest('.tab'); if(!t) return;
+   vm.cur=t.dataset.k; mt.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');}); vokaDraw();
+  });
+  $('#vgw').addEventListener('click',function(e){
+   var g=e.target.closest('.pt'); if(!g) return;
+   pick(+g.dataset.i);
+   var f=$('#vtabs'); if(f) f.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+  var rt; window.onresize=function(){clearTimeout(rt);rt=setTimeout(vokaDraw,150);};
+ }
 }
 function renderLevel(L){
  var d=session.data, it=itemsFor(d,L), exams=it.exams, reps=it.reps;
