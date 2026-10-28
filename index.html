@@ -185,7 +185,7 @@ function viewLogin(){
    if(r.status===404) throw new Error('bad');
    if(!r.ok) throw new Error('fetch');
    var data=await decryptBundle(await r.arrayBuffer(),inp.value,sid);
-   fails=0; session={data:data}; inp.value=''; viewReport();
+   fails=0; session={data:data,sid:sid,pw:(data&&data.role==='admin')?inp.value:null}; inp.value=''; viewReport();
   }catch(err){
    if(err&&err.message==='nocrypto'){msg.className='msg err';msg.textContent='이 브라우저에서는 열 수 없습니다. 주소가 https로 시작하는지 확인하고, 최신 Chrome이나 Safari로 다시 여십시오.';go.disabled=false;return;}
    if(err&&err.message==='fetch'){msg.className='msg err';msg.textContent='파일을 불러오지 못했습니다. 잠시 뒤 다시 시도하십시오.';go.disabled=false;return;}
@@ -322,6 +322,7 @@ function levelBtns(d){
 
 /* 화면: 리포트 */
 function viewReport(){
+ if(session.data&&session.data.role==='admin'&&window.HAAdmin){window.HAAdmin.open();return;}
  var d=session.data; $('#top').hidden=false;
  curLevel=startLevel(d);
  var hasHa=(d.exams||[]).length+(d.reports||[]).length>0, hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':'ha';
@@ -534,14 +535,17 @@ function showReport(reps,i,fid,nid){
  };
 }
 function leave(){
+ if(window.HAAdmin) window.HAAdmin.close();
  session=null; hidden={}; curLevel=null;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
  window.onresize=null;
  viewLogin(); window.scrollTo(0,0);
 }
 
+window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,session:function(){return session;}};
 viewLogin();
 })();
 </script>
+<script src="admin.js"></script>
 </body>
 </html>

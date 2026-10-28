@@ -5,11 +5,18 @@
 저장소만 봐서는 누가 등록되어 있는지 알 수 없습니다. 비밀번호와 관리 비밀번호는 저장소에 저장하지 않습니다.
 
 사용법 (저장소 루트에서 실행)
-  python3 tools/hareport.py init-admin
-      관리 비밀번호를 만들고 가짜 파일(decoy)을 채웁니다. 처음 한 번만 실행합니다.
-  python3 tools/hareport.py new-student --name 김민서 --level B1 --admin-password 관리비밀번호 [--id 김민서2] [--password 20자리비밀번호]
+  python3 tools/hareport.py init-admin [--replace-legacy]
+      관리자 파일(아이디 김종훈)을 만들고 관리 비밀번호를 한 번만 출력합니다. 처음 한 번만 실행합니다.
+      관리자 파일에는 학생 명단과 학생 비밀번호가 들어 있어, 로그인 화면에서 김종훈으로 로그인하면 관리자 페이지가 열립니다.
+      옛 data/admin.bin(가짜 파일 목록)이 있으면 --replace-legacy 로 지웁니다.
+  python3 tools/hareport.py new-student --name 김민서 --level B1 --admin-password 관리비밀번호 [--id 김민서2] [--password 20자리비밀번호] [--grammatik]
       새 학생을 만들고 20자리 학생 비밀번호를 한 번만 출력합니다. 아이디는 기본이 이름입니다.
-      같은 이름이 두 명이면 --id 로 다른 아이디를 줍니다.
+      같은 이름이 두 명이면 --id 로 다른 아이디를 줍니다. 명단에도 자동으로 들어갑니다.
+  python3 tools/hareport.py link-student --id 김민서 --password 학생비밀번호 --admin-password 관리비밀번호
+      이미 있는 학생을 관리자 명단에 넣습니다. 비밀번호를 모르면 --no-password 로 넣고 관리자 페이지에서 나중에 입력합니다.
+  python3 tools/hareport.py remove-student --id 김민서 --admin-password 관리비밀번호
+      학생을 뺍니다. 학생 파일은 무작위 바이트로 덮어써서 가짜 파일이 되고, 그 학생은 로그인할 수 없습니다.
+  python3 tools/hareport.py list-students --admin-password 관리비밀번호 [--show-passwords]
   python3 tools/hareport.py add-exam --id 김민서 --password 학생비밀번호 --json exam.json
   python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
   python3 tools/hareport.py add-voka --id 김민서 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
@@ -20,7 +27,7 @@
       GRAMMATIK 탭에 리포트를 등록합니다. 같은 번호를 다시 올리면 덮어씁니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
-      가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
+      관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
 
 레벨: 시험과 리포트는 레벨(A1~B2)별로 저장하고, 회차 번호(n)는 레벨 안에서 셉니다. 로그인한 뒤 학생이 레벨 버튼으로 골라 봅니다.
   - exam.json 의 level 이나 add-report 의 --level 을 생략하면 학생의 기본 레벨로 저장합니다.
@@ -31,6 +38,7 @@
 암호화: PBKDF2-HMAC-SHA256 600000회 -> AES-256-GCM. 파일 형식: salt(16) + iv(12) + 암호문. 인증 데이터는 파일 id.
 """
 import argparse, hashlib, json, os, re, secrets, sys, unicodedata
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -105,15 +113,40 @@ def make_decoy():
     return sid
 
 
+ADMIN_LOGIN = '김종훈'
+
+
+def admin_sid():
+    return file_id(ADMIN_LOGIN)
+
+
+def today_kst():
+    return datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d')
+
+
 def read_admin(apw):
+    # 관리자 파일은 일반 학생 파일과 똑같이 data/{파일 id}.bin 이고, 아이디는 김종훈입니다.
+    f = DATA / (admin_sid() + '.bin')
+    if not f.exists():
+        sys.exit('관리자 파일이 없습니다. init-admin 을 먼저 실행하십시오.')
     try:
-        return decrypt((DATA / 'admin.bin').read_bytes(), apw, 'admin')
+        A = decrypt(f.read_bytes(), apw, admin_sid())
     except Exception:
-        sys.exit('관리 비밀번호가 맞지 않거나 admin.bin이 없습니다.')
+        sys.exit('관리 비밀번호가 맞지 않습니다.')
+    A.setdefault('students', [])
+    A.setdefault('decoys', [])
+    return A
 
 
 def write_admin(obj, apw):
-    (DATA / 'admin.bin').write_bytes(encrypt(obj, apw, 'admin'))
+    (DATA / (admin_sid() + '.bin')).write_bytes(encrypt(obj, apw, admin_sid()))
+
+
+def pad_decoys(A):
+    # 전체 파일 수를 20개 단위로 맞춥니다. 학생 수를 파일 수로 알 수 없게 하려는 것입니다.
+    total = count_files()
+    while total % 20 != 0:
+        A['decoys'].append(make_decoy()); total += 1
 
 
 def read_bundle(login_id, password):
@@ -133,15 +166,19 @@ def write_bundle(bundle, sid, password):
 
 def cmd_init(a):
     DATA.mkdir(exist_ok=True)
-    if (DATA / 'admin.bin').exists():
-        sys.exit('admin.bin이 이미 있습니다. 관리 비밀번호를 다시 만들지 않습니다.')
-    apw = make_password()
-    dec = []
-    total = count_files()
-    while total % 20 != 0 or total == 0:
-        dec.append(make_decoy()); total += 1
-    write_admin({'decoys': dec}, apw)
-    print('관리 비밀번호: %s' % apw)
+    if (DATA / (admin_sid() + '.bin')).exists():
+        sys.exit('관리자 파일이 이미 있습니다. 관리 비밀번호를 다시 만들지 않습니다.')
+    legacy = DATA / 'admin.bin'
+    if legacy.exists():
+        if not a.replace_legacy:
+            sys.exit('옛 admin.bin(가짜 파일 목록)이 있습니다. 새 관리자 체계로 바꾸려면 --replace-legacy 를 붙이십시오.')
+        legacy.unlink()
+    apw = a.password or make_password()
+    A = {'role': 'admin', 'name': ADMIN_LOGIN, 'level': '-', 'exams': [], 'reports': [], 'voka': [], 'students': [], 'decoys': []}
+    write_admin(A, apw)
+    pad_decoys(A)
+    write_admin(A, apw)
+    print('관리 아이디: %s\n관리 비밀번호: %s' % (ADMIN_LOGIN, apw))
 
 
 def cmd_resize_decoys(a):
@@ -173,11 +210,56 @@ def cmd_new(a):
     if a.grammatik:
         bundle['grammatik'] = []
     write_bundle(bundle, sid, pw)
-    total = count_files()
-    while total % 20 != 0:
-        A['decoys'].append(make_decoy()); total += 1
+    A['students'].append({'id': login, 'fid': sid, 'name': a.name, 'level': a.level, 'password': pw, 'added': today_kst()})
+    pad_decoys(A)
     write_admin(A, a.admin_password)
     print('이름: %s\n레벨: %s\n아이디: %s\n비밀번호: %s' % (a.name, a.level, norm_id(login), pw))
+
+
+def cmd_link(a):
+    # 이미 있는 학생을 관리자 명단에 넣습니다. 비밀번호를 모르면 --no-password 로 넣고, 관리자 페이지에서 나중에 입력합니다.
+    A = read_admin(a.admin_password)
+    sid = file_id(a.id)
+    if not (DATA / (sid + '.bin')).exists():
+        sys.exit('아이디가 없습니다: %s' % a.id)
+    if a.password:
+        b, _ = read_bundle(a.id, a.password)
+        e = {'id': a.id, 'fid': sid, 'name': b['name'], 'level': b['level'], 'password': a.password, 'added': today_kst()}
+    elif a.no_password:
+        e = {'id': a.id, 'fid': sid, 'name': a.id, 'level': '-', 'password': None, 'added': today_kst()}
+    else:
+        sys.exit('--password 또는 --no-password 중 하나가 필요합니다.')
+    old = next((s for s in A['students'] if s['fid'] == sid), None)
+    if old:
+        e['added'] = old.get('added') or e['added']
+        A['students'][A['students'].index(old)] = e
+    else:
+        A['students'].append(e)
+    write_admin(A, a.admin_password)
+    print('명단에 반영: %s (%s)' % (e['name'], '비밀번호 있음' if e['password'] else '비밀번호 필요'))
+
+
+def cmd_remove(a):
+    # 학생을 뺍니다. 학생 파일은 무작위 바이트로 덮어써서 가짜 파일로 바뀌고, 파일 수는 그대로입니다.
+    A = read_admin(a.admin_password)
+    sid = file_id(a.id)
+    e = next((s for s in A['students'] if s['fid'] == sid), None)
+    if not e:
+        sys.exit('명단에 없는 아이디입니다. list-students 로 확인하십시오.')
+    f = DATA / (sid + '.bin')
+    if f.exists():
+        f.write_bytes(os.urandom(decoy_size()))
+        A['decoys'].append(sid)
+    A['students'].remove(e)
+    write_admin(A, a.admin_password)
+    print('뺐습니다: %s. 이 학생은 더 이상 로그인할 수 없습니다.' % e['name'])
+
+
+def cmd_list(a):
+    A = read_admin(a.admin_password)
+    for s in A['students']:
+        print('%s\t%s\t%s\t%s\t%s' % (s['name'], s['id'], s['level'], s.get('added', ''), (s['password'] if a.show_passwords else ('있음' if s['password'] else '없음'))))
+    print('학생 %d명, 가짜 파일 %d개 기록, 전체 파일 %d개' % (len(A['students']), len(A['decoys']), count_files()))
 
 
 def cmd_exam(a):
@@ -251,7 +333,11 @@ def cmd_show(a):
 def main():
     p = argparse.ArgumentParser(description='HA-REPORT 도구')
     sub = p.add_subparsers(dest='cmd', required=True)
-    sub.add_parser('init-admin').set_defaults(f=cmd_init)
+    i = sub.add_parser('init-admin'); i.add_argument('--password'); i.add_argument('--replace-legacy', action='store_true'); i.set_defaults(f=cmd_init)
+    k = sub.add_parser('link-student'); k.add_argument('--id', required=True); k.add_argument('--admin-password', required=True)
+    k.add_argument('--password'); k.add_argument('--no-password', action='store_true'); k.set_defaults(f=cmd_link)
+    m = sub.add_parser('remove-student'); [m.add_argument('--' + x, required=True) for x in ('id', 'admin-password')]; m.set_defaults(f=cmd_remove)
+    l = sub.add_parser('list-students'); l.add_argument('--admin-password', required=True); l.add_argument('--show-passwords', action='store_true'); l.set_defaults(f=cmd_list)
     n = sub.add_parser('new-student'); [n.add_argument('--' + k, required=True) for k in ('name', 'level', 'admin-password')]; n.add_argument('--password')
     n.add_argument('--id'); n.add_argument('--grammatik', action='store_true'); n.set_defaults(f=cmd_new)
     e = sub.add_parser('add-exam'); [e.add_argument('--' + k, required=True) for k in ('id', 'password', 'json')]; e.set_defaults(f=cmd_exam)
