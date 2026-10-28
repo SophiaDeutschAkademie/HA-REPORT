@@ -14,6 +14,10 @@
   python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
   python3 tools/hareport.py add-voka --id 김민서 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
       VOKA 탭에 주차별 학생용 리포트를 등록합니다. 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다.
+  python3 tools/hareport.py enroll-grammatik --id 이지아 --password 학생비밀번호
+      문법반 학생에게 GRAMMATIK 탭을 켭니다(리포트 0개). 새 학생은 new-student 에 --grammatik 을 붙여도 됩니다.
+  python3 tools/hareport.py add-grammatik --id 이지아 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --html 리포트.html
+      GRAMMATIK 탭에 리포트를 등록합니다. 같은 번호를 다시 올리면 덮어씁니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -165,7 +169,10 @@ def cmd_new(a):
     pw = a.password or make_password()
     if len(pw) != 20:
         sys.exit('비밀번호는 20자리여야 합니다.')
-    write_bundle({'name': a.name, 'level': a.level, 'exams': [], 'reports': [], 'voka': []}, sid, pw)
+    bundle = {'name': a.name, 'level': a.level, 'exams': [], 'reports': [], 'voka': []}
+    if a.grammatik:
+        bundle['grammatik'] = []
+    write_bundle(bundle, sid, pw)
     total = count_files()
     while total % 20 != 0:
         A['decoys'].append(make_decoy()); total += 1
@@ -214,9 +221,29 @@ def cmd_voka(a):
     print('VOKA 리포트 저장: %s %s주차, %d자, 전체 %d개' % (lv, a.week, len(html), len(b['voka'])))
 
 
+def cmd_enroll_grammatik(a):
+    b, sid = read_bundle(a.id, a.password)
+    if 'grammatik' in b:
+        print('이미 GRAMMATIK 탭 대상입니다. 리포트 %d개' % len(b['grammatik']))
+        return
+    b['grammatik'] = []
+    write_bundle(b, sid, a.password)
+    print('GRAMMATIK 탭을 켰습니다. 리포트 0개')
+
+
+def cmd_grammatik(a):
+    b, sid = read_bundle(a.id, a.password)
+    html = Path(a.html).read_text(encoding='utf-8')
+    g = {'n': a.n, 'title': a.title, 'date': a.date, 'html': html}
+    b['grammatik'] = [x for x in b.get('grammatik', []) if x['n'] != a.n] + [g]
+    b['grammatik'].sort(key=lambda x: (x['n'], x['date']))
+    write_bundle(b, sid, a.password)
+    print('GRAMMATIK 리포트 저장: %s번, %d자, 전체 %d개' % (a.n, len(html), len(b['grammatik'])))
+
+
 def cmd_show(a):
     b, sid = read_bundle(a.id, a.password)
-    for r in b['reports'] + b.get('voka', []):
+    for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []):
         r['html'] = '(%d자)' % len(r['html'])
     print(json.dumps(b, ensure_ascii=False, indent=1))
 
@@ -226,12 +253,15 @@ def main():
     sub = p.add_subparsers(dest='cmd', required=True)
     sub.add_parser('init-admin').set_defaults(f=cmd_init)
     n = sub.add_parser('new-student'); [n.add_argument('--' + k, required=True) for k in ('name', 'level', 'admin-password')]; n.add_argument('--password')
-    n.add_argument('--id'); n.set_defaults(f=cmd_new)
+    n.add_argument('--id'); n.add_argument('--grammatik', action='store_true'); n.set_defaults(f=cmd_new)
     e = sub.add_parser('add-exam'); [e.add_argument('--' + k, required=True) for k in ('id', 'password', 'json')]; e.set_defaults(f=cmd_exam)
     r = sub.add_parser('add-report'); [r.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
     r.add_argument('--exam-n', type=int, required=True); r.add_argument('--level'); r.set_defaults(f=cmd_report)
     v = sub.add_parser('add-voka'); [v.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
     v.add_argument('--week', type=int, required=True); v.add_argument('--level'); v.set_defaults(f=cmd_voka)
+    q = sub.add_parser('enroll-grammatik'); [q.add_argument('--' + k, required=True) for k in ('id', 'password')]; q.set_defaults(f=cmd_enroll_grammatik)
+    g = sub.add_parser('add-grammatik'); [g.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
+    g.add_argument('--n', type=int, required=True); g.set_defaults(f=cmd_grammatik)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)

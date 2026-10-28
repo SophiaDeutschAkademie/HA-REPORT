@@ -78,12 +78,14 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .tab{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-size:14px;font-weight:600;cursor:pointer;text-align:left}
 .tab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2f5a47}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-iframe#rf,iframe#vf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
+iframe#rf,iframe#vf,iframe#gf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
 .foot{color:var(--mute);font-size:12.5px;text-align:center;margin-top:28px}
 .mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 14px}
 .mtab{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 10px;font-weight:700;font-size:16px;cursor:pointer;text-align:center}
 .mtab:hover,.mtab:focus-visible{border-color:var(--acc);outline:none}
 .mtab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2f5a47}
+@media (max-width:420px){.mtabs{gap:6px}.mtab{font-size:14px;padding:12px 4px;overflow-wrap:normal}}
+@media (max-width:340px){.mtab{font-size:12.5px}}
 
 [hidden]{display:none!important}
 .login{min-height:calc(100vh - 90px);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 0 24px}
@@ -311,12 +313,14 @@ function levelBtns(d){
 function viewReport(){
  var d=session.data; $('#top').hidden=false;
  curLevel=startLevel(d);
- var hasHa=(d.exams||[]).length+(d.reports||[]).length>0, hasVoka=(d.voka||[]).length>0, tab=(!hasHa&&hasVoka)?'voka':'ha';
+ var hasHa=(d.exams||[]).length+(d.reports||[]).length>0, hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':'ha';
  var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><button class="btn" id="out">로그아웃</button></div></div>';
- h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류"><button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button></div>';
+ h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류" style="grid-template-columns:repeat('+(hasGr?3:2)+',1fr)"><button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button>'
+  +(hasGr?'<button type="button" class="mtab" role="tab" data-t="gr" aria-selected="'+(tab==='gr')+'">GRAMMATIK</button>':'')+'</div>';
  h+='<div id="pane-ha"'+(tab==='ha'?'':' hidden')+'><section class="card lvsel"><h2>레벨 선택</h2><div class="levels" id="lvs" role="group" aria-label="레벨 선택">'+levelBtns(d)+'</div></section>';
  h+='<div id="lvbody"></div></div>';
  h+='<div id="pane-voka"'+(tab==='voka'?'':' hidden')+'></div>';
+ h+='<div id="pane-gr"'+(tab==='gr'?'':' hidden')+'></div>';
  h+='<p class="foot">이 화면은 이 브라우저에서만 열려 있습니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
  app.innerHTML=h;
  $('#out').addEventListener('click',leave);
@@ -328,14 +332,31 @@ function viewReport(){
   var b=e.target.closest('.mtab'); if(!b||b.getAttribute('aria-selected')==='true') return;
   setMain(b.dataset.t);
  });
- if(tab==='ha') renderLevel(curLevel); else renderVoka();
+ if(tab==='ha') renderLevel(curLevel); else if(tab==='voka') renderVoka(); else renderGrammatik();
  window.scrollTo(0,0);
 }
 function setMain(t){
  $('#mt').querySelectorAll('.mtab').forEach(function(x){x.setAttribute('aria-selected',x.dataset.t===t?'true':'false');});
- $('#pane-ha').hidden=(t!=='ha'); $('#pane-voka').hidden=(t!=='voka');
+ $('#pane-ha').hidden=(t!=='ha'); $('#pane-voka').hidden=(t!=='voka'); $('#pane-gr').hidden=(t!=='gr');
  window.onresize=null;
- if(t==='ha') renderLevel(curLevel); else renderVoka();
+ if(t==='ha') renderLevel(curLevel); else if(t==='voka') renderVoka(); else renderGrammatik();
+}
+/* GRAMMATIK 탭: 문법반 학생용 리포트 */
+function renderGrammatik(){
+ var d=session.data, G=(d.grammatik||[]).slice().sort(function(p,q){return p.n-q.n;}), pane=$('#pane-gr');
+ window.onresize=null;
+ if(!G.length){pane.innerHTML='<div class="empty"><b>GRAMMATIK</b> 리포트가 아직 없습니다.<br>GRAMMATIK 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
+ var h='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">GRAMMATIK 리포트</h2><button class="btn" id="gnw" style="display:none">새 창으로 열기</button></div>';
+ h+='<div class="tabs" id="gtabs" role="tablist">';
+ G.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===G.length-1)+'">'+r.n+'회 · '+esc(r.title)+'<br><small style="font-weight:500;color:#6b665f">'+esc(r.date||'')+'</small></button>';});
+ h+='</div><iframe id="gf" title="GRAMMATIK 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe></section>';
+ pane.innerHTML=h;
+ showReport(G,G.length-1,'gf','gnw');
+ $('#gtabs').addEventListener('click',function(e){
+  var t=e.target.closest('.tab'); if(!t) return;
+  this.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');});
+  showReport(G,+t.dataset.i,'gf','gnw');
+ });
 }
 /* VOKA 탭: 주차별 학생용 리포트 */
 function renderVoka(){
