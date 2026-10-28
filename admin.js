@@ -347,13 +347,17 @@ function renderTable(){
  $('#aflt').innerHTML=F.map(function(f){return '<button type="button" class="tab" role="tab" data-k="'+f[0]+'" aria-selected="'+(flt===f[0])+'">'+f[1]+' '+f[2]+'</button>';}).join('');
  var rows=A.students.map(function(s){return {s:s,c:cls(s)};}).filter(function(r){return inFilter(r.c,flt);});
  var KO=new Intl.Collator('ko');
- rows.sort(function(p,q){return KO.compare(String(p.s.name||''),String(q.s.name||''));});
+ var LORD=['A1'].concat(LEVELS);
+ function lvOf(r){var x=st[r.s.fid]; return (x&&x.state==='ok'&&x.sum&&x.sum.level)?x.sum.level:r.s.level;}
+ function lvRank(r){var i=LORD.indexOf(lvOf(r)); return i<0?LORD.length:i;}
+ function nmOf(r){var x=st[r.s.fid]; return String((x&&x.state==='ok'&&x.sum&&x.sum.name)?x.sum.name:(r.s.name||''));}
+ rows.sort(function(p,q){return (lvRank(p)-lvRank(q))||KO.compare(nmOf(p),nmOf(q));});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
  else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
- n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시하고 맨 위에 둡니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
+ n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시합니다. 표는 레벨(A2, B1, B2, GRAMMATIK, ZERTIFIKAT B1, ZERTIFIKAT B2 순) 안에서 이름순으로 정렬합니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
  if(loadedAt) n.push(pad2(loadedAt.getHours())+':'+pad2(loadedAt.getMinutes())+'에 불러왔습니다.'+(token?'':' 토큰이 없으면 GitHub Pages의 복사본을 읽기 때문에 최대 10분쯤 늦을 수 있습니다.'));
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');
