@@ -177,9 +177,9 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.at th,.at td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}'
 +'.at th{font-size:12.5px;color:var(--mute);font-weight:600;white-space:nowrap}'
 +'.at td small{display:block;color:var(--mute);font-size:12px;line-height:1.45}'
-+'.at tr.late td{background:#fbf1ef}'
++'.at tr.late td{background:#fdeceb}.at tr.late a.nm,.at tr.late b{color:var(--bad)}.at tr.late small.ago{color:var(--bad);font-weight:700}'
 +'.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700;white-space:nowrap}'
-+'.badge.ok{background:#e4f0e8;color:#2f6a4c}.badge.late{background:#f6dcd8;color:#8f3028}'
++'.badge.ok{background:#e4f0e8;color:#2f6a4c}.badge.late{background:var(--bad);color:#fff}'
 +'.badge.norec,.badge.load{background:#efece4;color:#6b665f}.badge.warn{background:#f4ead2;color:#7d5f1b}'
 +'.badge.gr{background:#e3ecf5;color:#2e5f8a;font-weight:600}'
 +'.btn.sm{padding:4px 10px;font-size:13px}.btn.dng{border-color:#c9a09b;color:var(--bad)}.btn.dng:hover{background:#f6e6e3}'
@@ -328,10 +328,10 @@ function rowHtml(s){
   var q=m&&m[k];
   h+='<td>'+(q&&q.last?fmtD(q.last)+'<small>'+q.n+'개</small>':'-')+'</td>';
  });
- if(m&&m.last) h+='<td><b>'+fmtD(m.last)+'</b><small>'+agoText(daysAgo(m.last))+'</small></td>';
- else if(m){var ad=parseD(s.added);h+='<td>-<small>'+(ad?(daysAgo(ad)===0?'오늘 등록':'등록 '+daysAgo(ad)+'일 전'):'')+'</small></td>';}
- else h+='<td>-</td>';
- h+='<td><span class="badge '+c.k+'">'+esc(c.label)+'</span></td>';
+ var sub2='';
+ if(m&&m.last) sub2='<small class="ago">마지막 제출 '+fmtD(m.last)+' · '+agoText(daysAgo(m.last))+'</small>';
+ else if(m){var ad=parseD(s.added);if(ad) sub2='<small class="ago">'+(daysAgo(ad)===0?'오늘 등록':'등록 '+daysAgo(ad)+'일 전')+'</small>';}
+ h+='<td><span class="badge '+c.k+'">'+esc(c.label)+'</span>'+sub2+'</td>';
  var mg='';
  if(s.password) mg+='<button type="button" class="btn sm" data-a="pw">'+(shown[s.fid]?'숨기기':'비밀번호')+'</button> ';
  mg+='<button type="button" class="btn sm dng" data-a="del">삭제</button>';
@@ -349,10 +349,10 @@ function renderTable(){
  rows.sort(function(p,q){return p.c.rank-q.c.rank||q.c.n-p.c.n||String(p.s.name).localeCompare(String(q.s.name),'ko');});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
- else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭</th><th>VOKA</th><th>GRAMMATIK</th><th>마지막 등록</th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
+ else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭</th><th>VOKA</th><th>GRAMMATIK</th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
- n.push('마지막 등록은 과제 첨삭 시험 기록·리포트, VOKA, GRAMMATIK 리포트 가운데 가장 늦은 날짜입니다. 선생님이 올린 기록의 날짜 기준이라 학생이 실제로 낸 날과 다를 수 있습니다. 기록이 아직 없는 학생은 명단에 넣은 날부터 셉니다.');
+ n.push('마지막 제출은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 가운데 가장 늦은 날짜입니다. 마지막 제출 후 기준 일수 이상 지나면 빨간색으로 표시하고 맨 위에 둡니다. 선생님이 올린 기록의 날짜 기준이라 학생이 실제로 낸 날과 다를 수 있습니다. 기록이 아직 없는 학생은 명단에 넣은 날부터 셉니다.');
  if(loadedAt) n.push(pad2(loadedAt.getHours())+':'+pad2(loadedAt.getMinutes())+'에 불러왔습니다.'+(token?'':' 토큰이 없으면 GitHub Pages의 복사본을 읽기 때문에 최대 10분쯤 늦을 수 있습니다.'));
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');
