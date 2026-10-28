@@ -344,7 +344,7 @@ function renderVoka(){
  if(!V.length){pane.innerHTML='<div class="empty"><b>VOKA</b> 리포트가 아직 없습니다.<br>VOKA 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
  var h='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">VOKA 주간 리포트</h2><button class="btn" id="vnw" style="display:none">새 창으로 열기</button></div>';
  h+='<div class="tabs" id="vtabs" role="tablist">';
- V.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===V.length-1)+'">'+r.n+'주차'+(r.title?' · '+esc(r.title):'')+'<br><small style="font-weight:500;color:#6b665f">'+esc(r.date||'')+'</small></button>';});
+ V.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===V.length-1)+'">'+r.n+'주차</button>';});
  h+='</div><iframe id="vf" title="VOKA 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe></section>';
  pane.innerHTML=h;
  showReport(V,V.length-1,'vf','vnw');
