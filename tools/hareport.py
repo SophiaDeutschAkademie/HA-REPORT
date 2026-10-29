@@ -25,6 +25,7 @@
   python3 tools/hareport.py add-report --id 김민서 --password 학생비밀번호 --level B1 --exam-n 2 --title "Medien im Alltag" --date 2026-10-28 --html 리포트.html
   python3 tools/hareport.py add-voka --id 김민서 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
       VOKA 탭에 주차별 학생용 리포트를 등록합니다. 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다.
+      --level 은 A1, A2, B1, B2, C1 입니다. 열람 페이지 VOKA 탭에서는 A1과 A2가 "A1-A2" 버튼 하나로 묶여 보입니다.
   python3 tools/hareport.py enroll-grammatik --id 이지아 --password 학생비밀번호
       문법반 학생에게 GRAMMATIK 탭을 켭니다(리포트 0개). 새 학생은 new-student 에 --grammatik 을 붙여도 됩니다.
   python3 tools/hareport.py add-grammatik --id 이지아 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --rate 87 --html 리포트.html
@@ -54,6 +55,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / 'data'
 INDEX = DATA / 'index.json'
 LEVELS = ['A1', 'A2', 'B1', 'B2', 'GRAMMATIK', 'ZERTIFIKAT B1', 'ZERTIFIKAT B2']
+VOKA_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1']  # 열람 페이지 VOKA 탭의 레벨 버튼은 A1-A2(A1과 A2를 묶음), B1, B2, C1
 ITER = 600000
 AREAS = ['grammar', 'satz', 'vocab', 'reading', 'listening', 'writing']
 
@@ -354,8 +356,8 @@ def cmd_voka(a):
     b, sid = read_bundle(a.id, a.password)
     html = Path(a.html).read_text(encoding='utf-8')
     lv = a.level or b['level']
-    if lv not in LEVELS:
-        sys.exit('레벨은 %s 중 하나입니다.' % ', '.join(LEVELS))
+    if lv not in VOKA_LEVELS:
+        sys.exit('VOKA 레벨은 %s 중 하나입니다. --level 로 지정하십시오.' % ', '.join(VOKA_LEVELS))
     v = {'n': a.week, 'level': lv, 'title': a.title, 'date': a.date, 'html': html}
     b['voka'] = [x for x in b.get('voka', []) if not (lv_of(x, b) == lv and x['n'] == a.week)] + [v]
     b['voka'].sort(key=lambda x: (x['n'], x['date']))

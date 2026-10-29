@@ -28,6 +28,8 @@ h3{font-size:15px;margin:0 0 4px}
 .lvbtn.none span{opacity:.8}
 .lvbtn b.lg{font-size:15px;line-height:1.3;display:block;overflow-wrap:anywhere}
 @media (max-width:480px){.levels{grid-template-columns:repeat(2,1fr)}.lvbtn b.lg{font-size:14px}}
+.levels.l4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:480px){.levels.l4{grid-template-columns:repeat(2,1fr)}}
 .lvsel h2{margin-bottom:10px}
 @media (max-width:420px){.lvbtn{padding:14px 10px}.lvbtn b{font-size:22px}.lvbtn span{font-size:12.5px;line-height:1.5}}
 .lvbtn{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:18px 16px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
@@ -166,7 +168,7 @@ async function decryptBundle(buf,pw,id){
 /* 로그인 */
 var fails=0;
 function viewLogin(){
- session=null; hidden={}; curLevel=null; $('#top').hidden=true;
+ session=null; hidden={}; curLevel=null; vLevel=null; $('#top').hidden=true;
  app.innerHTML='<div class="login"><div class="lg-logo"><svg viewBox="0 0 1157 1332" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polygon points="0,320 686,0 686,707 0,1027" fill="#57585A"/><polygon points="235,501 921,153 921,860 235,1180" fill="#ED1B24"/><polygon points="470,655 1157,305 1157,985 470,1332" fill="#F2C811"/></svg></div>'
   +'<div class="lg-brand">Sophia Deutsch Akademie</div><div class="lg-title">과제 첨삭 리포트</div>'
   +'<form class="lg-card" id="lf" autocomplete="on">'
@@ -493,11 +495,43 @@ function vokaGraphHtml(V){
  h+='<div class="chart-wrap" id="vgw"></div><div class="vlg" id="vlg"><span><i style="background:'+GRC.S+'"></i>S</span><span><i style="background:'+GRC.A+'"></i>A</span><span><i style="background:'+GRC.B+'"></i>B</span></div><p class="note" id="vgn"></p><p class="note">점을 누르면 그 주차 리포트로 이동해요.</p></section>';
  return h;
 }
-/* VOKA 탭: 주차별 학생용 리포트 */
+/* VOKA 탭: 레벨(A1-A2, B1, B2, C1)을 고른 뒤 주차별 학생용 리포트를 봅니다. A1과 A2로 올린 기록은 A1-A2로 묶습니다 */
+var VLV=['A1-A2','B1','B2','C1'], vLevel=null;
+function vGroup(L){return (L==='A1'||L==='A2')?'A1-A2':L;}
+function vokaOf(d,G){return (d.voka||[]).filter(function(x){return vGroup(lvOf(x,d))===G;}).sort(function(p,q){return p.n-q.n;});}
+function vokaLevels(d){
+ var L=VLV.slice();
+ (d.voka||[]).forEach(function(x){var g=vGroup(lvOf(x,d)); if(L.indexOf(g)<0) L.push(g);});
+ return L;
+}
+function vokaStart(d){
+ var best=null;
+ (d.voka||[]).forEach(function(x){if(!best||String(x.date||'')>String(best.date||'')||(String(x.date||'')===String(best.date||'')&&x.n>=best.n))best=x;});
+ return best?vGroup(lvOf(best,d)):VLV[0];
+}
+function vokaBtns(d){
+ return vokaLevels(d).map(function(L){
+  var c=vokaOf(d,L).length;
+  return '<button type="button" class="lvbtn'+(c?'':' none')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===vLevel)+'"><b>'+esc(L)+'</b>'+(c?'<span>리포트 '+c+'개</span>':'<span>등록된 리포트 없음</span>')+'</button>';
+ }).join('');
+}
 function renderVoka(){
- var d=session.data, V=(d.voka||[]).slice().sort(function(p,q){return p.n-q.n;}), pane=$('#pane-voka');
+ var d=session.data, pane=$('#pane-voka');
+ if(!vLevel) vLevel=vokaStart(d);
+ if(!(d.voka||[]).length){pane.innerHTML='<div class="empty"><b>VOKA</b> 리포트가 아직 없습니다.<br>VOKA 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
+ pane.innerHTML='<section class="card lvsel"><h2>레벨 선택</h2><div class="levels l4" id="vlvs" role="group" aria-label="VOKA 레벨 선택">'+vokaBtns(d)+'</div></section><div id="vbody"></div>';
+ $('#vlvs').addEventListener('click',function(e){
+  var b=e.target.closest('.lvbtn'); if(!b||b.dataset.l===vLevel) return;
+  vLevel=b.dataset.l;
+  $('#vlvs').querySelectorAll('.lvbtn').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.l===vLevel?'true':'false');});
+  vm.cur='score'; renderVokaLevel();
+ });
+ renderVokaLevel();
+}
+function renderVokaLevel(){
+ var d=session.data, V=vokaOf(d,vLevel), pane=$('#vbody');
  window.onresize=null;
- if(!V.length){pane.innerHTML='<div class="empty"><b>VOKA</b> 리포트가 아직 없습니다.<br>VOKA 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
+ if(!V.length){pane.innerHTML='<div class="empty"><b>'+esc(vLevel)+'</b> VOKA 리포트가 아직 없습니다.<br>VOKA 리포트가 등록되면 여기에 표시됩니다.</div>';return;}
  var h=vokaGraphHtml(V);
  h+='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">VOKA 주간 리포트</h2><button class="btn" id="vnw" style="display:none">새 창으로 열기</button></div>';
  h+='<div class="tabs" id="vtabs" role="tablist">';
@@ -592,18 +626,18 @@ function showReport(reps,i,fid,nid){
 function backToAdmin(){
  if(!adminKeep||!session) return;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
- hidden={}; curLevel=null; window.onresize=null;
+ hidden={}; curLevel=null; vLevel=null; window.onresize=null;
  session.data=adminKeep; adminKeep=null;
  window.HAAdmin.open({keep:true}); window.scrollTo(0,0);
 }
 function previewStudent(data){
  if(!session||!session.data||session.data.role!=='admin'||adminKeep) return;
- adminKeep=session.data; session.data=data; hidden={}; curLevel=null; app.className='wrap';
+ adminKeep=session.data; session.data=data; hidden={}; curLevel=null; vLevel=null; app.className='wrap';
  viewReport();
 }
 function leave(){
  if(window.HAAdmin) window.HAAdmin.close();
- adminKeep=null; session=null; hidden={}; curLevel=null;
+ adminKeep=null; session=null; hidden={}; curLevel=null; vLevel=null;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
  window.onresize=null;
  viewLogin(); window.scrollTo(0,0);
