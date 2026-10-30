@@ -5,7 +5,7 @@
 'use strict';
 var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
-var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2'], EXAMS=['telc','GZ'];
+var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2','SNU'], EXAMS=['telc','GZ'];
 function isZ(l){return /^ZERTIFIKAT/.test(l||'');}
 var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
 
@@ -372,7 +372,7 @@ function renderTable(){
  else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 결과<small>등록일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
- n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시합니다. 시험 결과는 과제 첨삭과 따로 분류한 기록이라 등록일과 개수만 보여 주고, 일수 경과 판단에는 넣지 않습니다. 표는 레벨(A2, B1, B2, GRAMMATIK, ZERTIFIKAT A2, ZERTIFIKAT B1, ZERTIFIKAT B2 순) 안에서 이름순으로 정렬합니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
+ n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시합니다. 시험 결과는 과제 첨삭과 따로 분류한 기록이라 등록일과 개수만 보여 주고, 일수 경과 판단에는 넣지 않습니다. 표는 레벨(A2, B1, B2, GRAMMATIK, ZERTIFIKAT A2, ZERTIFIKAT B1, ZERTIFIKAT B2, SNU 순) 안에서 이름순으로 정렬합니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
  if(loadedAt) n.push(pad2(loadedAt.getHours())+':'+pad2(loadedAt.getMinutes())+'에 불러왔습니다.'+(token?'':' 토큰이 없으면 GitHub Pages의 복사본을 읽기 때문에 최대 10분쯤 늦을 수 있습니다.'));
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');
