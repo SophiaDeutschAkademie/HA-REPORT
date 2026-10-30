@@ -261,6 +261,11 @@ function open(o){
   +'<h3>기존 학생 연결</h3><p class="note">이미 저장소에 있는 학생을 명단에 넣습니다. 아이디와 비밀번호가 맞아야 합니다.</p>'
   +'<div class="aform"><div><label for="li">아이디</label><input id="li" type="text" autocomplete="off"></div><div><label for="lp">비밀번호</label><input id="lp" type="password" autocomplete="off"></div><div><button type="button" class="btn main" id="alk">연결</button></div></div>'
   +'<div style="margin:6px 0"><button type="button" class="btn" id="alist" aria-expanded="false">기존 학생 목록 보기</button></div><div id="alistbox" class="alist" hidden></div>'
+  +'<h3>비밀번호 분실 시 새로 만들기</h3><p class="note">저장소에 파일은 있는데 비밀번호를 모르는 학생의 파일을 새 비밀번호로 다시 만듭니다. <b>그 학생의 기존 기록(시험 기록, 리포트, VOKA, GRAMMATIK)은 모두 사라지고 빈 파일이 됩니다.</b> 이전 파일은 비밀번호 없이는 열 수 없기 때문입니다. 아이디는 학생이 로그인할 때 쓰던 것과 같아야 합니다. 비밀번호는 비워 두면 20자리로 자동 생성합니다.</p>'
+  +'<div class="aform"><div><label for="rn">이름</label><input id="rn" type="text" autocomplete="off"></div><div><label for="ri">아이디</label><input id="ri" type="text" autocomplete="off" placeholder="비우면 이름"></div>'
+  +'<div><label for="rl">레벨·반</label><select id="rl">'+LEVELS.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div>'
+  +'<div><label for="rp">새 비밀번호</label><input id="rp" type="text" autocomplete="off" placeholder="비우면 자동 생성"></div>'
+  +'<div><button type="button" class="btn dng" id="arst">새로 만들기</button></div></div>'
   +'<div class="msg" id="alog" role="status"></div><div id="aout"></div></section>';
  h+='<p class="foot">관리자 화면입니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
  app.innerHTML=h;
@@ -279,6 +284,7 @@ function open(o){
  $('#atkc').addEventListener('click',clearToken);
  $('#aadd').addEventListener('click',addStudent);
  $('#alk').addEventListener('click',function(){linkStudent($('#li').value.trim(),$('#lp').value);});
+ $('#arst').addEventListener('click',resetStudent);
  $('#alist').addEventListener('click',toggleList);
  $('#alistbox').addEventListener('click',onList);
  if(listOpen) renderList(false);
@@ -526,6 +532,38 @@ async function addStudent(){
   say('');
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
+}
+/* 비밀번호를 잃어버린 학생의 파일을 새 비밀번호로 다시 만듭니다. 기존 기록은 열 수 없으므로 빈 파일로 바뀝니다 */
+async function resetStudent(){
+ if(working||!needToken()) return;
+ var name=$('#rn').value.trim(), idv=$('#ri').value.trim()||name, lv=$('#rl').value, pw=$('#rp').value.trim();
+ if(!name){say('이름을 입력하십시오.',true);return;}
+ if(pw&&pw.length!==20){say('비밀번호는 20자리여야 합니다. 비워 두면 자동으로 만듭니다.',true);return;}
+ if(!window.confirm(name+' 학생(아이디 '+idv+')의 파일을 새로 만듭니다.\n기존 기록(시험 기록, 리포트, VOKA, GRAMMATIK)은 모두 사라지고 빈 파일이 됩니다. 되돌릴 수 없습니다.\n계속하시겠습니까?')) return;
+ pw=pw||genPw();
+ busy(true); $('#aout').innerHTML='';
+ try{
+  var fid=await H().deriveId(idv);
+  say('저장소 상태를 확인하고 있습니다.');
+  var files=await listData();
+  if(!files.some(function(f){return f.name===fid+'.bin';})) throw new Error('이 아이디의 파일이 저장소에 없습니다. 아이디를 확인하거나 위 "학생 추가"를 쓰십시오.');
+  var fresh=await adminFresh(); mergePending(fresh);
+  if(fresh.decoys.indexOf(fid)>=0) throw new Error('이 아이디의 파일은 삭제한 학생의 빈 자리입니다. 위 "학생 추가"를 쓰십시오.');
+  var b={name:name,level:lv,exams:[],reports:[],voka:[]}; if(lv==='GRAMMATIK') b.grammatik=[];
+  say('학생 파일을 암호화하고 있습니다.');
+  var sbytes=await encryptBundle(withPad(b),pw,fid);
+  fresh=await adminFresh(); mergePending(fresh);
+  var cur=fresh.students.filter(function(s){return s.fid===fid;})[0];
+  if(cur){cur.id=idv;cur.name=name;cur.level=lv;cur.password=pw;}
+  else fresh.students.push({id:idv,fid:fid,name:name,level:lv,password:pw,added:ymd(new Date())});
+  await commitChanges([{path:'data/'+fid+'.bin',bytes:sbytes},{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)}],'데이터 갱신');
+  A=fresh; pending={}; st[fid]={state:'ok',sum:summarize(b)}; delete shown[fid];
+  $('#rn').value='';$('#ri').value='';$('#rp').value='';
+  var cp='아이디: '+idv+'\n비밀번호: '+pw;
+  $('#aout').innerHTML='<div class="cred"><b>'+esc(name)+' 학생의 파일을 새로 만들었습니다.</b><div>아이디 <span class="mono">'+esc(idv)+'</span></div><div>비밀번호 <span class="mono">'+esc(pw)+'</span> <button type="button" class="btn sm" data-a="copy" data-t="'+esc(cp)+'">복사</button></div><p class="note">GitHub Pages에 반영되기까지 1~2분 걸립니다. 반영된 뒤에 학생이 새 비밀번호로 로그인할 수 있습니다. 비밀번호는 위 학생 현황의 "비밀번호" 버튼으로 다시 볼 수 있습니다.</p></div>';
+  say('');
+ }catch(e){say(msgOf(e),true);}
+ finally{busy(false);renderTable();if(listOpen)renderList(false);}
 }
 async function commitChanges(changes,msg){
  await ghCommit(changes,msg,function(i,n){say('저장소에 올리고 있습니다. ('+i+'/'+n+')');});
