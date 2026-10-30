@@ -36,7 +36,7 @@
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
 
-레벨: 시험과 리포트는 레벨(A1, A2, B1, B2, GRAMMATIK, ZERTIFIKAT B1, ZERTIFIKAT B2)별로 저장하고, 회차 번호(n)는 레벨 안에서 셉니다. 로그인한 뒤 학생이 레벨 버튼으로 골라 봅니다.
+레벨: 시험과 리포트는 레벨(A1, A2, B1, B2, GRAMMATIK, ZERTIFIKAT A2, ZERTIFIKAT B1, ZERTIFIKAT B2)별로 저장하고, 회차 번호(n)는 레벨 안에서 셉니다. 로그인한 뒤 학생이 레벨 버튼으로 골라 봅니다.
   - exam.json 의 level 이나 add-report 의 --level 을 생략하면 학생의 기본 레벨로 저장합니다.
   - 같은 레벨에서 같은 n 을 다시 올리면 덮어씁니다. 레벨이 다르면 n 이 같아도 따로 저장합니다.
 
@@ -54,7 +54,7 @@ from cryptography.hazmat.primitives import hashes
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / 'data'
 INDEX = DATA / 'index.json'
-LEVELS = ['A1', 'A2', 'B1', 'B2', 'GRAMMATIK', 'ZERTIFIKAT B1', 'ZERTIFIKAT B2']
+LEVELS = ['A1', 'A2', 'B1', 'B2', 'GRAMMATIK', 'ZERTIFIKAT A2', 'ZERTIFIKAT B1', 'ZERTIFIKAT B2']
 VOKA_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1']  # 열람 페이지 VOKA 탭의 레벨 버튼은 A1-A2(A1과 A2를 묶음), B1, B2, C1
 ITER = 600000
 AREAS = ['grammar', 'satz', 'vocab', 'reading', 'listening', 'writing']

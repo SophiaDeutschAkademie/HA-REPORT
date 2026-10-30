@@ -299,7 +299,7 @@ function summaryHtml(exams){
 }
 
 /* 레벨별 자료: 시험과 리포트에 level이 없으면 학생 기본 레벨로 봅니다 */
-var SHOW=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT B1','ZERTIFIKAT B2'], LORDER=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT B1','ZERTIFIKAT B2'];
+var SHOW=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2'], LORDER=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2'];
 function lvOf(x,d){return x.level||d.level;}
 function levelsOf(d){
  var L=SHOW.slice(), seen={};
