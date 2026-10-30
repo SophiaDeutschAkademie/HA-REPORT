@@ -5,7 +5,8 @@
 'use strict';
 var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
-var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2'];
+var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2'], EXAMS=['telc','GZ'];
+function isZ(l){return /^ZERTIFIKAT/.test(l||'');}
 var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
 
 function H(){return window.HA;}
@@ -142,7 +143,7 @@ function lastOf(list){
  return best;
 }
 function summarize(b){
- var o={name:b.name,level:b.level,gr:Array.isArray(b.grammatik),
+ var o={name:b.name,level:b.level,exam:b.exam||'',gr:Array.isArray(b.grammatik),
   ha:{last:lastOf((b.exams||[]).concat(b.reports||[])),n:Math.max((b.reports||[]).length,(b.exams||[]).length)},
   vk:{last:lastOf(b.voka),n:(b.voka||[]).length},
   gm:{last:lastOf(b.grammatik),n:(b.grammatik||[]).length},
@@ -184,6 +185,7 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.badge.ok{background:#e4f0e8;color:#2f6a4c}.badge.late{background:var(--bad);color:#fff}'
 +'.badge.norec,.badge.load{background:#efece4;color:#6b665f}.badge.warn{background:#f4ead2;color:#7d5f1b}'
 +'.badge.gr{background:#e3ecf5;color:#2e5f8a;font-weight:600}'
++'.mgb{display:flex;flex-wrap:wrap;gap:8px 20px}.lvs.exs{display:block;margin-top:5px}'
 +'.btn.sm{padding:4px 10px;font-size:13px}.btn.dng{border-color:#c9a09b;color:var(--bad)}.btn.dng:hover{background:#f6e6e3}'
 +'.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.03em;overflow-wrap:anywhere}'
 +'.lnk{display:flex;gap:6px;margin-top:6px}.lnk input{width:150px;min-width:0;border:1.5px solid var(--line);border-radius:8px;padding:4px 8px;font:inherit;font-size:13px}'
@@ -254,6 +256,7 @@ function open(o){
   +'<h3>학생 추가</h3><p class="note">새 학생 파일을 만들고 명단에 넣습니다. 비밀번호는 비워 두면 20자리로 자동 생성합니다.</p>'
   +'<div class="aform"><div><label for="an">이름</label><input id="an" type="text" autocomplete="off"></div><div><label for="ai">아이디</label><input id="ai" type="text" autocomplete="off" placeholder="비우면 이름"></div>'
   +'<div><label for="al">레벨·반</label><select id="al">'+LEVELS.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div>'
+  +'<div id="aew" hidden><label for="ae">시험 종류</label><select id="ae"><option value="">선택 안 함</option>'+EXAMS.map(function(x){return '<option>'+x+'</option>';}).join('')+'</select></div>'
   +'<div><label for="ap">비밀번호</label><input id="ap" type="text" autocomplete="off" placeholder="비우면 자동 생성"></div>'
   +'<div><button type="button" class="btn main" id="aadd">추가</button></div></div>'
   +'<h3>기존 학생 연결</h3><p class="note">이미 저장소에 있는 학생을 명단에 넣습니다. 아이디와 비밀번호가 맞아야 합니다.</p>'
@@ -274,12 +277,17 @@ function open(o){
  $('#atb').addEventListener('change',function(e){
   var sel=e.target.closest('select.lvs'); if(!sel) return;
   var tr=sel.closest('tr'), fid=tr&&tr.dataset.f, s=A.students.filter(function(x){return x.fid===fid;})[0];
+  if(/\bexs\b/.test(sel.className)){
+   if(!s||working||(sel.value&&EXAMS.indexOf(sel.value)<0)){renderTable();return;}
+   changeExam(s,sel.value); return;
+  }
   if(!s||working||LEVELS.indexOf(sel.value)<0){renderTable();return;}
   changeLevel(s,sel.value);
  });
  $('#atks').addEventListener('click',useToken);
  $('#atkc').addEventListener('click',clearToken);
  $('#aadd').addEventListener('click',addStudent);
+ $('#al').addEventListener('change',function(){$('#aew').hidden=!isZ(this.value);if(!isZ(this.value))$('#ae').value='';});
  $('#alk').addEventListener('click',function(){linkStudent($('#li').value.trim(),$('#lp').value);});
  $('#arst').addEventListener('click',resetStudent);
  $('#aout').addEventListener('click',function(e){
@@ -331,7 +339,7 @@ function rowHtml(s){
  var h='<tr class="'+(c.k==='late'?'late':'')+'" data-f="'+esc(s.fid)+'">';
  h+='<td>'+(x.state==='ok'?'<a href="#" class="nm" data-a="view">'+esc(name)+'</a>':'<b>'+esc(name)+'</b>')+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
  var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
- h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select>'+(m&&m.gr&&lvl!=='GRAMMATIK'?'<small>GRAMMATIK 탭 있음</small>':'')+'</td>';
+ h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select>'+(isZ(lvl)?'<select class="lvs exs" aria-label="'+esc(name)+' 시험 종류"><option value="">시험 종류 -</option>'+EXAMS.map(function(x){return '<option'+(x===((m&&m.exam)||s.exam||'')?' selected':'')+'>'+x+'</option>';}).join('')+'</select>':'')+(m&&m.gr&&lvl!=='GRAMMATIK'?'<small>GRAMMATIK 탭 있음</small>':'')+'</td>';
  ['ha','vk','gm','rs'].forEach(function(k){
   var q=m&&m[k];
   h+='<td>'+(q&&q.last?fmtD(q.last)+'<small>'+q.n+'개</small>':'-')+'</td>';
@@ -339,9 +347,9 @@ function rowHtml(s){
  var sub2='';
  if(m&&m.last) sub2='<small class="ago">마지막 제출 '+fmtD(m.last)+' · '+agoText(daysAgo(m.last))+'</small>';
  h+='<td><span class="badge '+c.k+'">'+esc(c.label)+'</span>'+sub2+'</td>';
- var mg='';
- if(s.password) mg+='<button type="button" class="btn sm" data-a="pw">'+(shown[s.fid]?'숨기기':'비밀번호')+'</button> ';
- mg+='<button type="button" class="btn sm dng" data-a="del">삭제</button>';
+ var mg='<div class="mgb">';
+ if(s.password) mg+='<button type="button" class="btn sm" data-a="pw">'+(shown[s.fid]?'숨기기':'비밀번호')+'</button>';
+ mg+='<button type="button" class="btn sm dng" data-a="del">삭제</button></div>';
  if(shown[s.fid]&&s.password) mg+='<small class="mono">'+esc(s.password)+'</small>';
  if(x.state==='nopw'||x.state==='badpw') mg+='<div class="lnk"><input type="password" class="rp" placeholder="비밀번호" autocomplete="off"><button type="button" class="btn sm" data-a="link">연결</button></div>';
  return h+'<td>'+mg+'</td></tr>';
@@ -419,7 +427,7 @@ async function loadAll(){
 /* 학생 추가·연결·삭제 */
 async function addStudent(){
  if(working||!needToken()) return;
- var name=$('#an').value.trim(), idv=$('#ai').value.trim()||name, lv=$('#al').value, gr=(lv==='GRAMMATIK'), pw=$('#ap').value.trim();
+ var name=$('#an').value.trim(), idv=$('#ai').value.trim()||name, lv=$('#al').value, gr=(lv==='GRAMMATIK'), pw=$('#ap').value.trim(), ex=isZ(lv)?$('#ae').value:'';
  if(!name){say('이름을 입력하십시오.',true);return;}
  if(pw&&pw.length!==20){say('비밀번호는 20자리여야 합니다. 비워 두면 자동으로 만듭니다.',true);return;}
  pw=pw||genPw();
@@ -433,12 +441,13 @@ async function addStudent(){
   var fresh=await adminFresh();
   var reuse=!!names[fid+'.bin']&&fresh.decoys.indexOf(fid)>=0; /* 삭제한 학생의 파일 자리는 가짜 파일로 남아 있어 다시 쓸 수 있습니다 */
   if(names[fid+'.bin']&&!reuse) throw new Error('같은 아이디의 파일이 저장소에 이미 있습니다. 아래 "기존 학생 연결"을 쓰십시오.');
-  var b={name:name,level:lv,exams:[],reports:[],voka:[]}; if(gr) b.grammatik=[];
+  var b={name:name,level:lv,exams:[],reports:[],voka:[]}; if(gr) b.grammatik=[]; if(ex) b.exam=ex;
   say('학생 파일을 암호화하고 있습니다.');
   var sbytes=await encryptBundle(withPad(b),pw,fid);
   fresh=await adminFresh();
   if(fresh.students.some(function(s){return s.fid===fid;})) throw new Error('이미 명단에 있는 아이디입니다.');
-  fresh.students.push({id:idv,fid:fid,name:name,level:lv,password:pw,added:ymd(new Date())});
+  var ns={id:idv,fid:fid,name:name,level:lv,password:pw,added:ymd(new Date())}; if(ex) ns.exam=ex;
+  fresh.students.push(ns);
   var changes=[{path:'data/'+fid+'.bin',bytes:sbytes}], count=files.length+(reuse?0:1), k, d;
   if(reuse) fresh.decoys=fresh.decoys.filter(function(x){return x!==fid;});
   else for(k=0;k<fresh.decoys.length;k++){ /* 기록된 가짜 파일이 있으면 하나를 지워 파일 수를 유지합니다 */
@@ -448,7 +457,7 @@ async function addStudent(){
   changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; st[fid]={state:'ok',sum:summarize(b)};
-  $('#an').value='';$('#ai').value='';$('#ap').value='';
+  $('#an').value='';$('#ai').value='';$('#ap').value='';$('#ae').value='';
   var cp='아이디: '+idv+'\n비밀번호: '+pw;
   $('#aout').innerHTML='<div class="cred"><b>'+esc(name)+' 학생을 추가했습니다.</b><div>아이디 <span class="mono">'+esc(idv)+'</span></div><div>비밀번호 <span class="mono">'+esc(pw)+'</span> <button type="button" class="btn sm" data-a="copy" data-t="'+esc(cp)+'">복사</button></div><p class="note">GitHub Pages에 반영되기까지 1~2분 걸립니다. 반영된 뒤에 학생이 로그인할 수 있습니다. 비밀번호는 위 학생 현황의 "비밀번호" 버튼으로 다시 볼 수 있습니다.</p></div>';
   say('');
@@ -472,11 +481,12 @@ async function resetStudent(){
   var fresh=await adminFresh(); mergePending(fresh);
   if(fresh.decoys.indexOf(fid)>=0) throw new Error('이 아이디의 파일은 삭제한 학생의 빈 자리입니다. 위 "학생 추가"를 쓰십시오.');
   var b={name:name,level:lv,exams:[],reports:[],voka:[]}; if(lv==='GRAMMATIK') b.grammatik=[];
+  var pv=A.students.filter(function(s){return s.fid===fid;})[0]; if(pv&&pv.exam&&isZ(lv)) b.exam=pv.exam;
   say('학생 파일을 암호화하고 있습니다.');
   var sbytes=await encryptBundle(withPad(b),pw,fid);
   fresh=await adminFresh(); mergePending(fresh);
   var cur=fresh.students.filter(function(s){return s.fid===fid;})[0];
-  if(cur){cur.id=idv;cur.name=name;cur.level=lv;cur.password=pw;}
+  if(cur){cur.id=idv;cur.name=name;cur.level=lv;cur.password=pw;if(b.exam)cur.exam=b.exam;else delete cur.exam;}
   else fresh.students.push({id:idv,fid:fid,name:name,level:lv,password:pw,added:ymd(new Date())});
   await commitChanges([{path:'data/'+fid+'.bin',bytes:sbytes},{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)}],'데이터 갱신');
   A=fresh; pending={}; st[fid]={state:'ok',sum:summarize(b)}; delete shown[fid];
@@ -502,8 +512,8 @@ async function linkStudent(idv,pw){
   try{b=await H().decryptBundle(buf,pw,fid);}catch(e){throw new Error('비밀번호가 맞지 않습니다.');}
   if(!token){ /* 토큰이 없으면 이 화면에만 반영하고, 토큰을 입력할 때 저장합니다 */
    var c0=A.students.filter(function(s){return s.fid===fid;})[0];
-   if(c0){c0.password=pw;c0.name=b.name;c0.level=b.level;if(!c0.id)c0.id=idv;}
-   else A.students.push({id:idv,fid:fid,name:b.name,level:b.level,password:pw,added:ymd(new Date())});
+   if(c0){c0.password=pw;c0.name=b.name;c0.level=b.level;if(b.exam)c0.exam=b.exam;else delete c0.exam;if(!c0.id)c0.id=idv;}
+   else A.students.push({id:idv,fid:fid,name:b.name,level:b.level,exam:b.exam||undefined,password:pw,added:ymd(new Date())});
    pending[fid]={id:idv,pw:pw,name:b.name,level:b.level};
    st[fid]={state:'ok',sum:summarize(b)};
    $('#li').value='';$('#lp').value='';
@@ -512,8 +522,8 @@ async function linkStudent(idv,pw){
   }
   var fresh=await adminFresh(); mergePending(fresh);
   var cur=fresh.students.filter(function(s){return s.fid===fid;})[0];
-  if(cur){cur.password=pw;cur.name=b.name;cur.level=b.level;if(!cur.id)cur.id=idv;}
-  else fresh.students.push({id:idv,fid:fid,name:b.name,level:b.level,password:pw,added:ymd(new Date())});
+  if(cur){cur.password=pw;cur.name=b.name;cur.level=b.level;if(b.exam)cur.exam=b.exam;else delete cur.exam;if(!cur.id)cur.id=idv;}
+  else fresh.students.push({id:idv,fid:fid,name:b.name,level:b.level,exam:b.exam||undefined,password:pw,added:ymd(new Date())});
   await commitChanges([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)}],'데이터 갱신');
   A=fresh; pending={}; st[fid]={state:'ok',sum:summarize(b)};
   $('#li').value='';$('#lp').value='';
@@ -553,15 +563,38 @@ async function changeLevel(s,lv){
     b.level=lv;
     msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다.'+(Array.isArray(b.grammatik)?' GRAMMATIK 탭은 그대로 있습니다.':'')+' 반영까지 1~2분 걸립니다.';
    }
-   cur.level=b.level;
+   cur.level=b.level; if(!isZ(b.level)){delete cur.exam;delete b.exam;}
    changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(withPad(b),cur.password,s.fid)});
   }else{
-   cur.level=lv; msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.';
+   cur.level=lv; if(!isZ(lv)) delete cur.exam; msg=nm+' 학생의 레벨을 '+lv+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.';
   }
   changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
   await commitChanges(changes,'데이터 갱신');
   A=fresh; if(b) st[s.fid]={state:'ok',sum:summarize(b)};
   say(msg);
+ }catch(e){say(msgOf(e),true);}
+ finally{busy(false);renderTable();}
+}
+async function changeExam(s,ex){
+ if(working) return;
+ if(!needToken()){renderTable();return;}
+ busy(true);
+ try{
+  say('저장소 상태를 확인하고 있습니다.');
+  var fresh=await adminFresh(), cur=fresh.students.filter(function(x){return x.fid===s.fid;})[0];
+  if(!cur) throw new Error('명단에서 이미 빠져 있습니다. 새로 불러오기를 눌러 확인하십시오.');
+  var changes=[], nm=cur.name, b=null;
+  if(ex) cur.exam=ex; else delete cur.exam;
+  if(cur.password){ /* 학생 파일에도 시험 종류를 기록합니다 */
+   var buf=await fetchFile(s.fid);
+   try{b=await H().decryptBundle(buf,cur.password,s.fid);}catch(e){throw new Error('저장된 비밀번호로 학생 파일을 열지 못했습니다. 비밀번호를 다시 연결하십시오.');}
+   nm=b.name; if(ex) b.exam=ex; else delete b.exam;
+   changes.push({path:'data/'+s.fid+'.bin',bytes:await encryptBundle(withPad(b),cur.password,s.fid)});
+  }
+  changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
+  await commitChanges(changes,'데이터 갱신');
+  A=fresh; if(b) st[s.fid]={state:'ok',sum:summarize(b)};
+  say(nm+' 학생의 시험 종류를 '+(ex||'미정')+'(으)로 바꿨습니다. 반영까지 1~2분 걸립니다.');
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
 }
