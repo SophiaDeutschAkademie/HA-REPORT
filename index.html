@@ -93,7 +93,7 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .tab .tt{display:block;overflow-wrap:anywhere}
 .tab .tt small{display:block;font-weight:500;color:#6b665f;margin-top:1px}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-iframe#rf,iframe#vf,iframe#gf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
+iframe#rf,iframe#vf,iframe#gf,iframe#xf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
 .foot{color:var(--mute);font-size:12.5px;text-align:center;margin-top:28px}
 .mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 14px}
 .mtab{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 10px;font-weight:700;font-size:16px;cursor:pointer;text-align:center}
@@ -329,15 +329,16 @@ function viewReport(){
  if(session.data&&session.data.role==='admin'&&window.HAAdmin){window.HAAdmin.open();return;}
  var d=session.data; $('#top').hidden=false;
  curLevel=startLevel(d);
- var hasHa=(d.exams||[]).length+(d.reports||[]).length>0, hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':'ha';
+ var hasHa=(d.exams||[]).length+(d.reports||[]).length>0, hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), hasRes=(d.results||[]).length>0, tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':hasRes?'res':'ha';
  var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><div>'+(adminKeep?'<button class="btn" id="bk">관리자 화면으로</button> ':'')+'<button class="btn" id="out">로그아웃</button></div></div></div>';
- h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류" style="grid-template-columns:repeat('+(hasGr?3:2)+',1fr)">'
+ h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류" style="grid-template-columns:repeat('+(hasGr?4:3)+',1fr)">'
   +(hasGr?'<button type="button" class="mtab" role="tab" data-t="gr" aria-selected="'+(tab==='gr')+'">GRAMMATIK</button>':'')
-  +'<button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button></div>';
+  +'<button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button><button type="button" class="mtab" role="tab" data-t="res" aria-selected="'+(tab==='res')+'">시험 결과</button></div>';
  h+='<div id="pane-ha"'+(tab==='ha'?'':' hidden')+'><section class="card lvsel"><h2>레벨 선택</h2><div class="levels" id="lvs" role="group" aria-label="레벨 선택">'+levelBtns(d)+'</div></section>';
  h+='<div id="lvbody"></div></div>';
  h+='<div id="pane-voka"'+(tab==='voka'?'':' hidden')+'></div>';
  h+='<div id="pane-gr"'+(tab==='gr'?'':' hidden')+'></div>';
+ h+='<div id="pane-res"'+(tab==='res'?'':' hidden')+'></div>';
  h+='<p class="foot">이 화면은 이 브라우저에서만 열려 있습니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
  app.innerHTML=h;
  $('#out').addEventListener('click',leave);
@@ -350,14 +351,14 @@ function viewReport(){
   var b=e.target.closest('.mtab'); if(!b||b.getAttribute('aria-selected')==='true') return;
   setMain(b.dataset.t);
  });
- if(tab==='ha') renderLevel(curLevel); else if(tab==='voka') renderVoka(); else renderGrammatik();
+ if(tab==='ha') renderLevel(curLevel); else if(tab==='voka') renderVoka(); else if(tab==='res') renderResults(); else renderGrammatik();
  window.scrollTo(0,0);
 }
 function setMain(t){
  $('#mt').querySelectorAll('.mtab').forEach(function(x){x.setAttribute('aria-selected',x.dataset.t===t?'true':'false');});
- $('#pane-ha').hidden=(t!=='ha'); $('#pane-voka').hidden=(t!=='voka'); $('#pane-gr').hidden=(t!=='gr');
+ $('#pane-ha').hidden=(t!=='ha'); $('#pane-voka').hidden=(t!=='voka'); $('#pane-gr').hidden=(t!=='gr'); $('#pane-res').hidden=(t!=='res');
  window.onresize=null;
- if(t==='ha') renderLevel(curLevel); else if(t==='voka') renderVoka(); else renderGrammatik();
+ if(t==='ha') renderLevel(curLevel); else if(t==='voka') renderVoka(); else if(t==='res') renderResults(); else renderGrammatik();
 }
 /* GRAMMATIK 실력 향상도 그래프: 리포트를 등록할 때 넣은 회차별 정답률(rate)로 그립니다 */
 function grAvg(a){return a.length?a.reduce(function(p,c){return p+c;},0)/a.length:0;}
@@ -426,6 +427,54 @@ function renderGrammatik(){
   var t=e.target.closest('.tab'); if(!t) return;
   this.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');});
   showReport(G,+t.dataset.i,'gf','gnw');
+ });
+}
+/* 시험 결과 탭: 과제 첨삭과 따로 분류합니다. 말하기 연습 결과처럼 시험 형식으로 본 기록을 시험 종류별로 모아 보여 줍니다 */
+var rKind=null;
+function resKind(x){return x.exam||'기타';}
+function resKinds(d){
+ var K=[]; (d.results||[]).forEach(function(x){var k=resKind(x); if(K.indexOf(k)<0) K.push(k);});
+ return K.sort(function(p,q){return p.localeCompare(q,'ko');});
+}
+function resOf(d,k){return (d.results||[]).filter(function(x){return resKind(x)===k;}).sort(function(p,q){return (String(p.date||'')<String(q.date||'')?-1:String(p.date||'')>String(q.date||'')?1:0)||(p.n-q.n);});}
+function resStart(d){
+ var best=null;
+ (d.results||[]).forEach(function(x){if(!best||String(x.date||'')>String(best.date||'')||(String(x.date||'')===String(best.date||'')&&x.n>=best.n))best=x;});
+ return best?resKind(best):null;
+}
+function resBtns(d){
+ return resKinds(d).map(function(k){
+  var c=resOf(d,k).length;
+  return '<button type="button" class="lvbtn" data-k="'+esc(k)+'" aria-pressed="'+(k===rKind)+'"><b'+(k.length>3?' class="lg"':'')+'>'+esc(k)+'</b><span>결과 '+c+'개</span></button>';
+ }).join('');
+}
+function renderResults(){
+ var d=session.data, pane=$('#pane-res');
+ window.onresize=null;
+ if(!(d.results||[]).length){pane.innerHTML='<div class="empty"><b>시험 결과</b>가 아직 없습니다.<br>시험 형식으로 본 결과(말하기 연습 결과 등)가 등록되면 여기에 표시됩니다.</div>';return;}
+ if(!rKind||resKinds(d).indexOf(rKind)<0) rKind=resStart(d);
+ pane.innerHTML='<section class="card lvsel"><h2>시험 선택</h2><div class="levels" id="rlvs" role="group" aria-label="시험 선택">'+resBtns(d)+'</div></section><div id="rbody"></div>';
+ $('#rlvs').addEventListener('click',function(e){
+  var b=e.target.closest('.lvbtn'); if(!b||b.dataset.k===rKind) return;
+  rKind=b.dataset.k;
+  $('#rlvs').querySelectorAll('.lvbtn').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.k===rKind?'true':'false');});
+  renderResultBody();
+ });
+ renderResultBody();
+}
+function renderResultBody(){
+ var d=session.data, R=resOf(d,rKind), pane=$('#rbody');
+ if(!R.length){pane.innerHTML='<div class="empty"><b>'+esc(rKind)+'</b> 결과가 아직 없습니다.</div>';return;}
+ var h='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">'+esc(rKind)+' 시험 결과</h2><button class="btn" id="xnw" style="display:none">새 창으로 열기</button></div>';
+ h+='<div class="tabs" id="rtabs" role="tablist">';
+ R.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===R.length-1)+'"><span class="tn">'+(i+1)+'회</span><span class="tt">'+esc(r.title)+'<small>'+esc(r.date||'')+'</small></span></button>';});
+ h+='</div><iframe id="xf" title="'+esc(rKind)+' 시험 결과" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe></section>';
+ pane.innerHTML=h;
+ showReport(R,R.length-1,'xf','xnw');
+ $('#rtabs').addEventListener('click',function(e){
+  var t=e.target.closest('.tab'); if(!t) return;
+  this.querySelectorAll('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t?'true':'false');});
+  showReport(R,+t.dataset.i,'xf','xnw');
  });
 }
 /* VOKA 학습 성과 그래프: 각 주차 리포트에 적힌 숫자를 읽어서 그립니다 */

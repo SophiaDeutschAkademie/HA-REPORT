@@ -32,6 +32,11 @@
       GRAMMATIK 탭에 리포트를 등록합니다. 같은 번호를 다시 올리면 덮어씁니다.
       --rate 는 그 회차의 정답률(%)이고, 리포트가 2개 이상 쌓이면 GRAMMATIK 탭 위쪽 '실력 향상도' 그래프에 그려집니다.
       다시 올릴 때 --rate 를 생략하면 이전에 넣은 정답률을 그대로 둡니다.
+  python3 tools/hareport.py add-result --id 김민서 --password 학생비밀번호 --html "SODA 말하기 결과 telc B2 MDT1 김민서 2026-10-30.html" [--exam "telc B2"] [--title 제목] [--date 2026-10-30]
+      "시험 결과" 탭에 결과 하나를 등록합니다. 과제 첨삭과 따로 분류되는 탭입니다.
+      SODA SPRECHEN 앱이 만든 말하기 결과 파일은 --html 만 주면 됩니다. 파일 안의 정보로 시험 종류(telc B2, Goethe A2 ...), 제목, 작성일을 자동으로 채웁니다.
+      여러 시험이 한 파일에 들어 있으면 시험 종류는 "말하기 종합"이 됩니다. --exam, --title, --date 로 직접 정할 수도 있습니다.
+      같은 파일(같은 작성 시각)을 다시 올리면 덮어씁니다. 열람 페이지에서는 시험 종류 버튼으로 나뉘고, 각 시험 안에서 날짜순으로 1회, 2회 ... 로 보입니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -391,9 +396,70 @@ def cmd_grammatik(a):
     print('GRAMMATIK 리포트 저장: %s번, %d자, 정답률 %s, 전체 %d개' % (a.n, len(html), ('%s%%' % rate) if rate is not None else '없음', len(b['grammatik'])))
 
 
+RES_RE = re.compile(r'<script[^>]*id="soda-result-data"[^>]*>(.*?)</script>', re.S)
+RES_SHORT = {'telc Deutsch B2': 'telc B2', 'telc Deutsch B1': 'telc B1', 'Goethe-Zertifikat A2': 'Goethe A2',
+             'Goethe-Zertifikat B1': 'Goethe B1', 'Goethe-Zertifikat B2': 'Goethe B2'}
+
+
+def result_info(html):
+    """SODA SPRECHEN 결과 파일에 들어 있는 JSON에서 시험 종류, 제목, 작성일, 작성 시각을 읽습니다. 없으면 빈 값입니다."""
+    m = RES_RE.search(html)
+    if not m:
+        return {}
+    try:
+        p = json.loads(m.group(1))
+    except ValueError:
+        return {}
+    if p.get('kind') != 'soda-sprechen-result':
+        return {}
+    labels = [e.get('label', '') for e in p.get('exams', [])]
+    shorts = []
+    for lb in labels:
+        base = lb.split(',')[0].strip()
+        sh = RES_SHORT.get(base, base)
+        if sh not in shorts:
+            shorts.append(sh)
+    exam = shorts[0] if len(shorts) == 1 else '말하기 종합'
+    if len(shorts) == 1:
+        title = '말하기 ' + ' · '.join(lb.split(',', 1)[-1].strip() for lb in labels)
+    else:
+        title = '말하기 ' + ' · '.join(RES_SHORT.get(lb.split(',')[0].strip(), lb.split(',')[0].strip()) + ' ' + lb.split(',', 1)[-1].strip() for lb in labels) if labels else None
+    date = None
+    if p.get('created'):
+        try:
+            dt = datetime.fromisoformat(p['created'].replace('Z', '+00:00')).astimezone(timezone(timedelta(hours=9)))
+            date = dt.strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+    return {'exam': exam, 'title': title, 'date': date, 'created': p.get('created')}
+
+
+def cmd_result(a):
+    b, sid = read_bundle(a.id, a.password)
+    html = Path(a.html).read_text(encoding='utf-8')
+    info = result_info(html)
+    exam = a.exam or info.get('exam')
+    title = a.title or info.get('title')
+    date = a.date or info.get('date') or today_kst()
+    if not exam:
+        sys.exit('시험 종류를 알 수 없습니다. --exam "telc B2" 처럼 지정하십시오.')
+    if not title:
+        sys.exit('제목을 알 수 없습니다. --title 로 지정하십시오.')
+    res = b.get('results', [])
+    prev = next((x for x in res if info.get('created') and x.get('created') == info['created']), None)
+    n = prev['n'] if prev else max([x['n'] for x in res] + [0]) + 1
+    r = {'n': n, 'exam': exam, 'title': title, 'date': date, 'html': html}
+    if info.get('created'):
+        r['created'] = info['created']
+    b['results'] = [x for x in res if x['n'] != n] + [r]
+    b['results'].sort(key=lambda x: (x['date'], x['n']))
+    write_bundle(b, sid, a.password)
+    print('시험 결과 저장: %s · %s · %s, %d자, 전체 %d개%s' % (exam, title, date, len(html), len(b['results']), ' (덮어씀)' if prev else ''))
+
+
 def cmd_show(a):
     b, sid = read_bundle(a.id, a.password)
-    for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []):
+    for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []) + b.get('results', []):
         r['html'] = '(%d자)' % len(r['html'])
     print(json.dumps(b, ensure_ascii=False, indent=1))
 
@@ -418,6 +484,8 @@ def main():
     q = sub.add_parser('enroll-grammatik'); [q.add_argument('--' + k, required=True) for k in ('id', 'password')]; q.set_defaults(f=cmd_enroll_grammatik)
     g = sub.add_parser('add-grammatik'); [g.add_argument('--' + k, required=True) for k in ('id', 'password', 'title', 'date', 'html')]
     g.add_argument('--n', type=int, required=True); g.add_argument('--rate', type=int); g.set_defaults(f=cmd_grammatik)
+    w = sub.add_parser('add-result'); [w.add_argument('--' + k, required=True) for k in ('id', 'password', 'html')]
+    w.add_argument('--exam'); w.add_argument('--title'); w.add_argument('--date'); w.set_defaults(f=cmd_result)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)

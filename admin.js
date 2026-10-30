@@ -145,7 +145,8 @@ function summarize(b){
  var o={name:b.name,level:b.level,gr:Array.isArray(b.grammatik),
   ha:{last:lastOf((b.exams||[]).concat(b.reports||[])),n:Math.max((b.reports||[]).length,(b.exams||[]).length)},
   vk:{last:lastOf(b.voka),n:(b.voka||[]).length},
-  gm:{last:lastOf(b.grammatik),n:(b.grammatik||[]).length}};
+  gm:{last:lastOf(b.grammatik),n:(b.grammatik||[]).length},
+  rs:{last:lastOf(b.results),n:(b.results||[]).length}};
  o.last=[o.ha.last,o.vk.last,o.gm.last].reduce(function(m,d){return d&&(!m||d>m)?d:m;},null);
  return o;
 }
@@ -173,7 +174,7 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.acell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}'
 +'.acell b{display:block;font-size:26px;line-height:1.3}.acell span{color:var(--mute);font-size:13px}'
 +'.acell.late b{color:var(--bad)}.acell.warn b{color:var(--warn)}'
-+'table.at{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}'
++'table.at{width:100%;border-collapse:collapse;font-size:14px;min-width:860px}'
 +'.at th,.at td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}'
 +'.at th{font-size:12.5px;color:var(--mute);font-weight:600;white-space:nowrap}'
 +'.at th small{display:block;font-weight:400;font-size:11.5px}'
@@ -325,7 +326,7 @@ function rowHtml(s){
  h+='<td>'+(x.state==='ok'?'<a href="#" class="nm" data-a="view">'+esc(name)+'</a>':'<b>'+esc(name)+'</b>')+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
  var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
  h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select>'+(m&&m.gr&&lvl!=='GRAMMATIK'?'<small>GRAMMATIK 탭 있음</small>':'')+'</td>';
- ['ha','vk','gm'].forEach(function(k){
+ ['ha','vk','gm','rs'].forEach(function(k){
   var q=m&&m[k];
   h+='<td>'+(q&&q.last?fmtD(q.last)+'<small>'+q.n+'개</small>':'-')+'</td>';
  });
@@ -354,10 +355,10 @@ function renderTable(){
  rows.sort(function(p,q){return (lvRank(p)-lvRank(q))||KO.compare(nmOf(p),nmOf(q));});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
- else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
+ else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 결과<small>등록일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
- n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시합니다. 표는 레벨(A2, B1, B2, GRAMMATIK, ZERTIFIKAT A2, ZERTIFIKAT B1, ZERTIFIKAT B2 순) 안에서 이름순으로 정렬합니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
+ n.push('제출일은 과제 첨삭(시험 기록·리포트), VOKA, GRAMMATIK 기록에 적힌 날짜입니다. 이 가운데 가장 늦은 제출일로부터 기준 일수 이상 지나면 빨간색으로 표시합니다. 시험 결과는 과제 첨삭과 따로 분류한 기록이라 등록일과 개수만 보여 주고, 일수 경과 판단에는 넣지 않습니다. 표는 레벨(A2, B1, B2, GRAMMATIK, ZERTIFIKAT A2, ZERTIFIKAT B1, ZERTIFIKAT B2 순) 안에서 이름순으로 정렬합니다. 제출 기록이 아직 없는 학생은 제출일이 없어 "제출 없음"으로만 표시하고 빨간색으로 표시하지 않습니다.');
  if(loadedAt) n.push(pad2(loadedAt.getHours())+':'+pad2(loadedAt.getMinutes())+'에 불러왔습니다.'+(token?'':' 토큰이 없으면 GitHub Pages의 복사본을 읽기 때문에 최대 10분쯤 늦을 수 있습니다.'));
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');

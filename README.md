@@ -38,6 +38,7 @@ python3 tools/hareport.py list-students --admin-password 관리비밀번호 [--s
 python3 tools/hareport.py add-exam   --id 아이디 --password 학생비밀번호 --json exam.json
 python3 tools/hareport.py add-report --id 아이디 --password 학생비밀번호 --level B1 --exam-n 2 --title "과제명" --date 2026-10-28 --html 리포트.html
 python3 tools/hareport.py add-voka   --id 아이디 --password 학생비밀번호 --week 6 --level A1 --title "VOKA 6주차" --date 2026-10-19 --html VOKA6주차.html
+python3 tools/hareport.py add-result --id 아이디 --password 학생비밀번호 --html "SODA 말하기 결과 telc B2 MDT1 이름 2026-10-30.html" [--exam "telc B2"] [--title 제목] [--date 2026-10-30]
 python3 tools/hareport.py enroll-grammatik --id 아이디 --password 학생비밀번호
 python3 tools/hareport.py add-grammatik    --id 아이디 --password 학생비밀번호 --n 1 --title "과제명" --date 2026-11-04 --rate 87 --html 리포트.html
 python3 tools/hareport.py show       --id 아이디 --password 학생비밀번호
@@ -49,6 +50,7 @@ python3 tools/hareport.py show       --id 아이디 --password 학생비밀번�
 - 접속(아이디, 비밀번호)은 레벨과 관계없습니다. 로그인 화면에는 레벨이 나오지 않고, 로그인한 뒤에만 레벨 버튼이 보입니다.
 - VOKA 리포트는 로그인 후 위쪽 "VOKA" 탭에서 레벨 버튼(A1-A2 · B1 · B2 · C1)을 고른 뒤 주차별로 봅니다. `--level A1`과 `--level A2`로 올린 리포트는 "A1-A2" 버튼 하나에 모이고, `--level`을 생략하면 학생의 기본 레벨로 저장합니다. 등록된 리포트가 없는 레벨은 "등록된 리포트 없음"으로 보이고, 학습 성과 그래프는 고른 레벨의 주차만 그립니다. 처음 열 때는 가장 최근에 올린 리포트의 레벨이 열립니다. `add-voka`는 같은 레벨에서 같은 주차를 다시 올리면 덮어씁니다. 과제 첨삭 기록 없이 VOKA만 있는 학생은 VOKA 탭이 먼저 열립니다.
 - 문법반 학생에게는 로그인 후 "GRAMMATIK" 탭이 하나 더 보입니다. `enroll-grammatik`으로 탭을 켜면(리포트 0개) "GRAMMATIK 리포트가 아직 없습니다"로 보이고, `add-grammatik`으로 등록한 리포트가 회차 순서로 나타납니다. 같은 번호를 다시 올리면 덮어씁니다. `--rate`(그 회차 정답률, %)를 함께 올리면 정답률이 2회 이상 쌓인 뒤부터 GRAMMATIK 탭 위쪽에 회차별 정답률과 최근 3회 평균을 보여 주는 "실력 향상도" 그래프가 나타납니다. 새 학생은 `new-student`에 `--grammatik`을 붙여도 됩니다. 탭을 켜지 않은 학생에게는 GRAMMATIK 탭이 보이지 않습니다. 과제 첨삭과 VOKA 기록이 없는 문법반 학생은 GRAMMATIK 탭이 먼저 열립니다.
+- 시험 결과는 과제 첨삭과 따로 분류되는 "시험 결과" 탭에서 봅니다(탭은 모든 학생에게 보이고, 등록된 결과가 없으면 "시험 결과가 아직 없습니다"로 보입니다). `add-result`로 등록하고, SODA SPRECHEN 앱이 만든 말하기 결과 파일은 `--html`만 주면 파일 안의 정보로 시험 종류(telc B2, Goethe A2, telc B1, Goethe B1, Goethe B2), 제목(말하기 Modelltest 1), 작성일(한국 시간)을 자동으로 채웁니다. 여러 시험이 한 파일에 들어 있으면 시험 종류는 "말하기 종합"입니다. 그 밖의 시험 결과는 `--exam`, `--title`, `--date`로 직접 지정합니다. 같은 파일(같은 작성 시각)을 다시 올리면 덮어쓰고, 다른 파일은 새 결과로 쌓입니다. 학생 화면에서는 위쪽 "시험 선택" 버튼으로 시험 종류를 고른 뒤 날짜순 1회, 2회 ...로 봅니다. 처음 열 때는 가장 최근에 올린 결과의 시험 종류가 열립니다. 관리자 표에는 "시험 결과(등록일·개수)" 칸이 있지만 일수 경과 판단에는 넣지 않습니다. 과제 첨삭·VOKA·GRAMMATIK 기록이 하나도 없는 학생은 시험 결과가 있으면 이 탭이 먼저 열립니다.
 - 아이디는 NFKC 정규화 후 공백을 없애고 소문자로 바꿔 비교합니다.
 
 `exam.json` 형식(점수는 백분율, 측정하지 않은 영역은 null):
