@@ -6,7 +6,7 @@
 var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
 var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2'];
-var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
+var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={}, listOpen=false, listFiles=null;
 
 function H(){return window.HA;}
 function $(s,r){return (r||document).querySelector(s);}
@@ -69,7 +69,8 @@ function agoText(n){return n===0?'오늘':n+'일 전';}
 /* GitHub API */
 async function gh(path,opt){
  opt=opt||{};
- var h={'Authorization':'Bearer '+token,'Accept':opt.raw?'application/vnd.github.raw+json':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+ var h={'Accept':opt.raw?'application/vnd.github.raw+json':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+ if(token) h['Authorization']='Bearer '+token; /* 토큰이 없어도 공개 저장소의 파일 목록은 읽을 수 있습니다 */
  var init={method:opt.method||'GET',headers:h,cache:'no-store'};
  if(opt.body){init.body=JSON.stringify(opt.body);h['Content-Type']='application/json';}
  var r=await fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/'+path,init);
@@ -194,6 +195,7 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.asec h2{margin-bottom:2px}.asec h3{margin:18px 0 2px}'
 +'.cred{border:1.5px solid var(--acc);background:#f1f6f3;border-radius:12px;padding:12px 14px;margin-top:10px}'
 +'.cred div{margin:2px 0}'
++'table.at.al{min-width:0}.alist h4{font-size:15px}.alist .oi{width:100%;min-width:120px;border:1.5px solid var(--line);border-radius:8px;padding:4px 8px;font:inherit;font-size:13px}'
 +'.thr{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)}.thr input{width:60px;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:14px}';
 function injectStyle(){
  if(styled) return;
@@ -236,7 +238,7 @@ function open(o){
  if(!keep){
   var sess=H().session(); if(!sess||!sess.data) return;
   S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
-  st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null; tokenChecked=false;
+  st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null; tokenChecked=false; listOpen=false; listFiles=null;
   try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
   if(A.token) token=A.token; /* 관리자 파일에 암호화되어 들어 있는 토큰 */
  }
@@ -258,6 +260,7 @@ function open(o){
   +'<div><button type="button" class="btn main" id="aadd">추가</button></div></div>'
   +'<h3>기존 학생 연결</h3><p class="note">이미 저장소에 있는 학생을 명단에 넣습니다. 아이디와 비밀번호가 맞아야 합니다.</p>'
   +'<div class="aform"><div><label for="li">아이디</label><input id="li" type="text" autocomplete="off"></div><div><label for="lp">비밀번호</label><input id="lp" type="password" autocomplete="off"></div><div><button type="button" class="btn main" id="alk">연결</button></div></div>'
+  +'<div style="margin:6px 0"><button type="button" class="btn" id="alist" aria-expanded="false">기존 학생 목록 보기</button></div><div id="alistbox" class="alist" hidden></div>'
   +'<div class="msg" id="alog" role="status"></div><div id="aout"></div></section>';
  h+='<p class="foot">관리자 화면입니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
  app.innerHTML=h;
@@ -276,6 +279,9 @@ function open(o){
  $('#atkc').addEventListener('click',clearToken);
  $('#aadd').addEventListener('click',addStudent);
  $('#alk').addEventListener('click',function(){linkStudent($('#li').value.trim(),$('#lp').value);});
+ $('#alist').addEventListener('click',toggleList);
+ $('#alistbox').addEventListener('click',onList);
+ if(listOpen) renderList(false);
  $('#aout').addEventListener('click',function(e){
   var b=e.target.closest('[data-a="copy"]'); if(!b) return;
   try{navigator.clipboard.writeText(b.dataset.t);b.textContent='복사했습니다';}catch(x){b.textContent='복사하지 못했습니다';}
@@ -363,6 +369,78 @@ function renderTable(){
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');
  if(working) busy(true);
+}
+/* 기존 학생 목록: 명단의 학생과 명단에 없는 학생 파일을 한 번에 보여 주고, 줄마다 연결 버튼을 둡니다 */
+async function renderList(reload){
+ var box=$('#alistbox'); if(!box||!A) return;
+ var btn=$('#alist'); if(btn){btn.textContent='기존 학생 목록 닫기';btn.setAttribute('aria-expanded','true');}
+ box.hidden=false;
+ if(reload||!listFiles){
+  say('저장소 파일 목록을 읽고 있습니다.');
+  try{listFiles=await listData();say('');}
+  catch(e){listFiles=null;say(msgOf(e),true);}
+ }
+ var rost={}, dec={}, KO=new Intl.Collator('ko');
+ A.students.forEach(function(s){rost[s.fid]=1;});
+ (A.decoys||[]).forEach(function(d){dec[d]=1;});
+ var orphans=(listFiles||[]).filter(function(f){var k=f.name.replace(/\.bin$/,'');return k!==S.sid&&!rost[k]&&!dec[k];});
+ var rows=A.students.slice().sort(function(p,q){
+  function nm(s){var x=st[s.fid];return String((x&&x.state==='ok'&&x.sum&&x.sum.name)?x.sum.name:(s.name||''));}
+  return KO.compare(nm(p),nm(q));
+ });
+ var h='<h4 style="margin:10px 0 2px">명단에 있는 학생 '+rows.length+'명</h4><p class="note">비밀번호를 입력하고 연결을 누르면 현황에 바로 반영합니다. 이미 연결된 학생도 비밀번호가 바뀌었으면 다시 연결할 수 있습니다.</p>';
+ if(!rows.length) h+='<div class="empty">명단에 학생이 없습니다.</div>';
+ else{
+  h+='<div class="tbscroll"><table class="at al"><thead><tr><th>이름</th><th>레벨·반</th><th>상태</th><th>비밀번호</th></tr></thead><tbody>';
+  rows.forEach(function(s){
+   var x=st[s.fid]||{state:'load'}, c=cls(s), m=x.state==='ok'?x.sum:null, ok=x.state==='ok';
+   h+='<tr data-f="'+esc(s.fid)+'"><td><b>'+esc(m?m.name:s.name)+'</b>'+(s.id&&s.id!==(m?m.name:s.name)?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>'
+    +'<td>'+esc((m?m.level:s.level)||'-')+'</td>'
+    +'<td><span class="badge '+(ok?'ok':c.k)+'">'+(ok?'연결됨':esc(c.label))+'</span></td>'
+    +'<td><div class="lnk" style="margin-top:0"><input type="password" class="rp" placeholder="비밀번호" autocomplete="off" aria-label="'+esc(m?m.name:s.name)+' 비밀번호"><button type="button" class="btn sm" data-a="rl">'+(ok?'다시 연결':'연결')+'</button></div></td></tr>';
+  });
+  h+='</tbody></table></div>';
+ }
+ h+='<h4 style="margin:16px 0 2px">명단에 없는 학생 파일 '+(listFiles?orphans.length:'-')+'개</h4>';
+ if(!listFiles) h+='<div class="empty">저장소 파일 목록을 읽지 못했습니다. "기존 학생 목록 닫기"를 누르고 다시 열어 보십시오.</div>';
+ else if(!orphans.length) h+='<div class="empty">명단에 없는 학생 파일이 없습니다.</div>';
+ else{
+  h+='<p class="note">파일 안의 이름은 암호화되어 있어 아이디를 직접 입력해야 합니다. 아이디가 파일과 맞지 않으면 연결되지 않습니다. 명단에 기록되지 않은 채움용 가짜 파일이 섞여 있을 수 있습니다.</p>'
+   +'<div class="tbscroll"><table class="at al"><thead><tr><th>파일</th><th>아이디</th><th>비밀번호</th></tr></thead><tbody>';
+  orphans.forEach(function(f){
+   var k=f.name.replace(/\.bin$/,'');
+   h+='<tr data-f="'+esc(k)+'"><td><span class="mono">'+esc(k.slice(0,6))+'…</span><small>'+Math.round((f.size||0)/1024)+'KB</small></td>'
+    +'<td><input type="text" class="oi" placeholder="아이디" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="아이디"></td>'
+    +'<td><div class="lnk" style="margin-top:0"><input type="password" class="rp" placeholder="비밀번호" autocomplete="off" aria-label="비밀번호"><button type="button" class="btn sm" data-a="ol">연결</button></div></td></tr>';
+  });
+  h+='</tbody></table></div>';
+ }
+ h+='<div style="margin-top:8px"><button type="button" class="btn sm" data-a="lr">목록 새로 읽기</button></div>';
+ box.innerHTML=h;
+ if(working) busy(true);
+}
+function toggleList(){
+ var box=$('#alistbox'), btn=$('#alist'); if(!box||!btn) return;
+ if(listOpen){listOpen=false;box.hidden=true;btn.textContent='기존 학생 목록 보기';btn.setAttribute('aria-expanded','false');return;}
+ listOpen=true; renderList(true);
+}
+async function onList(e){
+ var b=e.target.closest('[data-a]'); if(!b||working) return;
+ var a=b.dataset.a, tr=b.closest('tr');
+ if(a==='lr'){renderList(true);return;}
+ if(!tr) return;
+ if(a==='rl'){
+  var s=A.students.filter(function(x){return x.fid===tr.dataset.f;})[0]; if(!s) return;
+  await linkStudent(s.id,tr.querySelector('.rp').value);
+  renderList(false);
+ }else if(a==='ol'){
+  var idv=tr.querySelector('.oi').value.trim(), pw=tr.querySelector('.rp').value;
+  if(!idv||!pw){say('아이디와 비밀번호를 입력하십시오.',true);return;}
+  var fid; try{fid=await H().deriveId(idv);}catch(x){say(msgOf(x),true);return;}
+  if(fid!==tr.dataset.f){say('입력한 아이디가 이 파일과 맞지 않습니다.',true);return;}
+  await linkStudent(idv,pw);
+  renderList(false);
+ }
 }
 function onTable(e){
  var b=e.target.closest('[data-a]'); if(!b||working) return;
