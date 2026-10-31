@@ -236,12 +236,18 @@ function drawChart(exams){
  all.forEach(function(a){
   if(hidden[a.k]) return;
   var vals=seriesFor(exams,a), pts=[];
-  vals.forEach(function(v,i){if(v!=null)pts.push([X(i),Y(v),v,i]);});
+  function OFF(i){
+   if(a.k==='avg') return 0;
+   var same=AREAS.filter(function(x){return !hidden[x.k]&&seriesFor(exams,x)[i]===vals[i];});
+   var idx=same.map(function(x){return x.k;}).indexOf(a.k);
+   return same.length>1?(idx-(same.length-1)/2)*10:0;
+  }
+  vals.forEach(function(v,i){if(v!=null)pts.push([X(i)+OFF(i),Y(v),v,i]);});
   if(!pts.length) return;
   var avg=a.k==='avg';
   if(pts.length>1){
    var segs=[],cur=[];
-   vals.forEach(function(v,i){if(v==null){if(cur.length)segs.push(cur);cur=[];}else cur.push(X(i)+','+Y(v));});
+   vals.forEach(function(v,i){if(v==null){if(cur.length)segs.push(cur);cur=[];}else cur.push((X(i)+OFF(i))+','+Y(v));});
    if(cur.length)segs.push(cur);
    segs.forEach(function(sg){if(sg.length>1)g+='<polyline points="'+sg.join(' ')+'" fill="none" stroke="'+a.color+'" stroke-width="'+(avg?3.2:2.2)+'" stroke-linejoin="round" stroke-linecap="round"'+(avg?' stroke-dasharray="7 5"':'')+'/>';});
   }
