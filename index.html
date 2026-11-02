@@ -136,6 +136,25 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf{display:block;width:100%;bord
  .levels.l4{grid-template-columns:repeat(4,1fr)}
  iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf{min-height:560px}
 }
+/* 휴대폰 화면: 글자와 여백을 줄여 한 화면에 더 많이 보이게 합니다. 위쪽 규칙보다 뒤에 두어야 적용됩니다 */
+@media (max-width:480px){
+ body{font-size:14px;line-height:1.7}
+ .wrap{padding:16px 14px 56px}
+ .card{padding:14px;margin:12px 0}
+ h2{font-size:16px}
+ .brand{font-size:13px}.brand small{font-size:11px}
+ .vhead{padding:16px}.vhead .who{font-size:19px}.vhead .lv{font-size:12.5px}
+ .mtab{font-size:13.5px;padding:10px 4px}
+ .lvbtn{padding:12px}.lvbtn b{font-size:19px;margin-bottom:2px}.lvbtn b.lg{font-size:14px}.lvbtn span{font-size:12px;line-height:1.45}
+ .pgl{font-size:12px}
+ .tab{font-size:13px;padding:5px 10px}
+ .btn{font-size:13px;padding:8px 12px}
+ .note{font-size:12px}
+ table.tb{font-size:13px}.tb th{font-size:12px}
+ .chip{font-size:12px}
+ .vgraph .vsum{font-size:13.5px}
+ .lg-brand{font-size:21px}.lg-title{font-size:14.5px;margin-bottom:20px}.lg-help{font-size:12.5px}
+}
 </style>
 </head>
 <body>
@@ -239,8 +258,8 @@ function seriesFor(exams,a){
   var q=e.scores[a.k]; return q==null?null:q;
  });
 }
-function drawChart(exams){
- var cwEl=document.getElementById('cw'), W=Math.max(300,Math.min(960,(cwEl&&cwEl.clientWidth)||680)), H=W<520?320:340, L=W<520?36:44, R=W<520?14:22, T=14, B=52, pw=W-L-R, ph=H-T-B, n=exams.length;
+function drawChart(exams,cwEl){
+ var W=Math.max(300,Math.min(960,(cwEl&&cwEl.clientWidth)||680)), H=W<520?320:340, L=W<520?36:44, R=W<520?14:22, T=14, B=52, pw=W-L-R, ph=H-T-B, n=exams.length;
  function X(i){return n===1?L+pw/2:L+pw*i/(n-1);}
  function Y(v){return T+ph*(1-v/100);}
  var g='';
@@ -675,14 +694,14 @@ function levelBody(L,sf){
  }
  h+='</section>';
  body.innerHTML=h;
- if(exams.length){$('#cw'+sf).innerHTML=drawChart(exams);}
+ if(exams.length){$('#cw'+sf).innerHTML=drawChart(exams,$('#cw'+sf));}
  var lg=$('#lg'+sf);
  if(lg) lg.addEventListener('click',function(e){
   var b=e.target.closest('.chip'); if(!b) return;
   hidden[b.dataset.k]=!hidden[b.dataset.k];
-  $('#cw'+sf).innerHTML=drawChart(exams); lg.innerHTML=legendHtml();
+  $('#cw'+sf).innerHTML=drawChart(exams,$('#cw'+sf)); lg.innerHTML=legendHtml();
  });
- if(exams.length){var rt;window.onresize=function(){clearTimeout(rt);rt=setTimeout(function(){var c=$('#cw'+sf);if(c)c.innerHTML=drawChart(exams);},150);};}
+ if(exams.length){var rt;window.onresize=function(){clearTimeout(rt);rt=setTimeout(function(){var c=$('#cw'+sf);if(c)c.innerHTML=drawChart(exams,c);},150);};}
  if(reps.length){
   showReport(reps,reps.length-1,'rf'+sf,'nw'+sf);
   $('#tabs'+sf).addEventListener('click',function(e){
