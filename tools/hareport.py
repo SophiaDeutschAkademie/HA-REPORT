@@ -63,6 +63,7 @@ LEVELS = ['A1', 'A2', 'B1', 'B2', 'GRAMMATIK', 'ZERTIFIKAT A2', 'ZERTIFIKAT B1',
 VOKA_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1']  # 열람 페이지 VOKA 탭의 레벨 버튼은 A1-A2(A1과 A2를 묶음), B1, B2, C1
 ITER = 600000
 AREAS = ['grammar', 'satz', 'vocab', 'reading', 'listening', 'writing']
+Z_AREAS = ['reading', 'listening', 'writing', 'speaking']  # ZERTIFIKAT 레벨(시험 준비): 읽기, 듣기, 쓰기, 말하기. telc는 sprach(Sprachbausteine)도 쓸 수 있음
 
 UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 LOWER = 'abcdefghijkmnopqrstuvwxyz'
@@ -332,10 +333,10 @@ def cmd_list(a):
 def cmd_exam(a):
     b, sid = read_bundle(a.id, a.password)
     ex = json.loads(Path(a.json).read_text(encoding='utf-8'))
-    for k in AREAS:
+    ex['level'] = ex.get('level') or b['level']
+    for k in (Z_AREAS if ex['level'].startswith('ZERTIFIKAT') else AREAS):
         if k not in ex.get('scores', {}):
             sys.exit('scores에 %s가 없습니다. (측정하지 않은 영역은 null로 씁니다.)' % k)
-    ex['level'] = ex.get('level') or b['level']
     if ex['level'] not in LEVELS:
         sys.exit('레벨은 %s 중 하나입니다.' % ', '.join(LEVELS))
     b['exams'] = [e for e in b['exams'] if not (lv_of(e, b) == ex['level'] and e['n'] == ex['n'])] + [ex]

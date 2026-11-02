@@ -176,6 +176,15 @@ var AREAS=[
  {k:'satz',     name:'문장 만들기', color:'#5b6b78', shape:'circleo'},
  {k:'writing',  name:'작문(추정)',  color:'#1f8f8f', shape:'squareo'}
 ];
+var AREAS_BASE=AREAS;
+/* 시험 준비(ZERTIFIKAT) 레벨: 읽기, 듣기, 쓰기, 말하기. telc 학생은 Sprachbausteine를 더합니다 */
+var Z_READ={k:'reading',name:'읽기',color:'#8a4f7d',shape:'triangle'}, Z_LIST={k:'listening',name:'듣기',color:'#b0653a',shape:'diamond'},
+ Z_WRIT={k:'writing',name:'쓰기(추정)',color:'#1f8f8f',shape:'squareo'}, Z_SPEAK={k:'speaking',name:'말하기(추정)',color:'#2e5f8a',shape:'circle'},
+ Z_SPRA={k:'sprach',name:'Sprachbausteine',color:'#3a7d5c',shape:'square'};
+function areasFor(L,d){
+ if(!/^ZERTIFIKAT/.test(L||'')) return AREAS_BASE;
+ return d&&d.exam==='telc'?[Z_READ,Z_SPRA,Z_LIST,Z_WRIT,Z_SPEAK]:[Z_READ,Z_LIST,Z_WRIT,Z_SPEAK];
+}
 var AVG={k:'avg',name:'평균',color:'#262220',shape:'bar'};
 var app=document.getElementById('app');
 var session=null, hidden={}, objUrls=[], curLevel=null, adminKeep=null, pSel=null;
@@ -676,6 +685,7 @@ function renderLevel(L){
 /* 레벨 하나의 발전 기록과 리포트를 그립니다. sf는 요소 id 뒤에 붙는 구분 문자('' = 과제 첨삭, 'z' = 시험 준비) */
 function levelBody(L,sf){
  var d=session.data, it=itemsFor(d,L), exams=it.exams, reps=it.reps;
+ AREAS=areasFor(L,d);
  var body=$('#lvbody'+sf);
  if(!exams.length&&!reps.length){
   body.innerHTML='<div class="empty"><b>'+esc(L)+'</b> 시험 기록과 리포트가 아직 없습니다.<br>'+esc(L)+' 리포트가 등록되면 여기에 표시됩니다.</div>';
@@ -683,7 +693,7 @@ function levelBody(L,sf){
  }
  var h='<section class="card"><h2>'+esc(L)+' 발전 기록</h2>';
  if(!exams.length) h+='<p class="note">아직 '+esc(L)+' 시험 기록이 없습니다.</p>';
- else h+='<div class="chart-wrap" id="cw'+sf+'"></div><div class="legend" id="lg'+sf+'">'+legendHtml()+'</div><p class="note">영역 이름을 누르면 선을 숨기거나 다시 보입니다. 작문은 선생님이 추정한 레벨 부합도이고, 나머지는 정답률입니다.</p>'+summaryHtml(exams)+tableHtml(exams);
+ else h+='<div class="chart-wrap" id="cw'+sf+'"></div><div class="legend" id="lg'+sf+'">'+legendHtml()+'</div><p class="note">영역 이름을 누르면 선을 숨기거나 다시 보입니다. '+(/^ZERTIFIKAT/.test(L)?'쓰기와 말하기는 선생님이 추정한 값이고, 나머지는 정답률입니다.':'작문은 선생님이 추정한 레벨 부합도이고, 나머지는 정답률입니다.')+'</p>'+summaryHtml(exams)+tableHtml(exams);
  h+='</section>';
  h+='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">'+esc(L)+' 리포트</h2><button class="btn" id="nw'+sf+'" style="display:none">새 창으로 열기</button></div>';
  if(!reps.length) h+='<p class="note">아직 등록된 '+esc(L)+' 리포트가 없습니다.</p>';
