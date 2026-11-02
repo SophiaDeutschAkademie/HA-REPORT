@@ -96,7 +96,7 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .tab .tt{display:block;overflow-wrap:anywhere}
 .tab .tt small{display:block;font-weight:500;color:#6b665f;margin-top:1px}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-iframe#rf,iframe#vf,iframe#gf,iframe#xf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
+iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
 .foot{color:var(--mute);font-size:12.5px;text-align:center;margin-top:28px}
 .mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 14px}
 .mtab{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 10px;font-weight:700;font-size:16px;cursor:pointer;text-align:center}
@@ -122,6 +122,20 @@ iframe#rf,iframe#vf,iframe#gf,iframe#xf{display:block;width:100%;border:1px soli
 .lg-card .btn.main{width:100%;padding:12px;font-size:15px}
 .lg-help{color:var(--mute);font-size:13px;margin:14px 0 0;text-align:center}
 @media (max-width:480px){h1{font-size:21px}.vhead .who{font-size:21px}}
+/* 컴퓨터 화면: 휴대폰 폭(760px) 그대로 두지 않고 넓게 씁니다 */
+@media (min-width:1024px){
+ body{font-size:16px}
+ .top-in,.wrap{max-width:1120px}
+ .top-in{padding:12px 32px}
+ .wrap{padding:30px 32px 72px}
+ .card{padding:24px 28px}
+ .vhead{padding:26px 30px}
+ .vhead .who{font-size:28px}
+ .mtab{padding:15px 10px;font-size:17px}
+ .levels{gap:14px}
+ .levels.l4{grid-template-columns:repeat(4,1fr)}
+ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf{min-height:560px}
+}
 </style>
 </head>
 <body>
@@ -226,7 +240,7 @@ function seriesFor(exams,a){
  });
 }
 function drawChart(exams){
- var cwEl=document.getElementById('cw'), W=Math.max(300,Math.min(720,(cwEl&&cwEl.clientWidth)||680)), H=W<520?320:340, L=W<520?36:44, R=W<520?14:22, T=14, B=52, pw=W-L-R, ph=H-T-B, n=exams.length;
+ var cwEl=document.getElementById('cw'), W=Math.max(300,Math.min(960,(cwEl&&cwEl.clientWidth)||680)), H=W<520?320:340, L=W<520?36:44, R=W<520?14:22, T=14, B=52, pw=W-L-R, ph=H-T-B, n=exams.length;
  function X(i){return n===1?L+pw/2:L+pw*i/(n-1);}
  function Y(v){return T+ph*(1-v/100);}
  var g='';
@@ -377,7 +391,7 @@ function grStats(G){
  var o=[]; G.forEach(function(r,i){if(typeof r.rate==='number'&&isFinite(r.rate))o.push({i:i,n:r.n,rate:r.rate});}); return o;
 }
 function grChart(st,wid){
- var W=Math.max(300,Math.min(720,wid||680)), H=W<520?250:270, L=W<520?36:44, R=W<520?16:24, T=24, B=44, pw=W-L-R, ph=H-T-B, n=st.length, many=n>9, fs=W<520&&many?11:12.5;
+ var W=Math.max(300,Math.min(960,wid||680)), H=W<520?250:270, L=W<520?36:44, R=W<520?16:24, T=24, B=44, pw=W-L-R, ph=H-T-B, n=st.length, many=n>9, fs=W<520&&many?11:12.5;
  var vals=st.map(function(x){return x.rate;}), hi=100, lo=Math.max(0,Math.floor((Math.min.apply(null,vals)-6)/10)*10), step=(hi-lo)>50?20:10;
  function X(i){return n===1?L+pw/2:L+pw*i/(n-1);}
  function Y(v){return T+ph*(1-(v-lo)/(hi-lo));}
@@ -523,7 +537,7 @@ function vokaStats(r){
  return o;
 }
 function vokaChart(){
- var st=vm.st, k=vm.cur, W=Math.max(300,Math.min(720,($('#vgw')&&$('#vgw').clientWidth)||680)), H=W<520?230:250, L=W<520?36:44, R=W<520?16:24, T=22, B=44, pw=W-L-R, ph=H-T-B, n=st.length;
+ var st=vm.st, k=vm.cur, W=Math.max(300,Math.min(960,($('#vgw')&&$('#vgw').clientWidth)||680)), H=W<520?230:250, L=W<520?36:44, R=W<520?16:24, T=22, B=44, pw=W-L-R, ph=H-T-B, n=st.length;
  var vals=st.map(function(x){return x[k];}), nn=vals.filter(function(v){return v!=null;}), lo=0, hi=100, step=20;
  if(k==='score'){hi=Math.max(100,Math.ceil(Math.max.apply(null,nn)/10)*10); lo=Math.max(0,Math.floor((Math.min.apply(null,nn)-6)/10)*10); step=(hi-lo)>50?20:10;}
  else if(k==='days'){hi=Math.max(7,Math.max.apply(null,nn)); lo=0; step=hi>10?2:1;}
