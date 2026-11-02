@@ -143,12 +143,17 @@ function lastOf(list){
  return best;
 }
 function summarize(b){
+ /* ZERTIFIKAT 레벨의 시험 기록·리포트는 학생 화면의 "시험 준비" 탭에서 보이므로 과제 첨삭이 아니라 시험 준비로 셉니다 */
+ function inZ(x){return isZ((x&&x.level)||b.level);}
+ var ex=b.exams||[], rp=b.reports||[];
+ var hx=ex.filter(function(x){return !inZ(x);}), hr=rp.filter(function(x){return !inZ(x);});
+ var zx=ex.filter(inZ), zr=rp.filter(inZ);
  var o={name:b.name,level:b.level,exam:b.exam||'',gr:Array.isArray(b.grammatik),
-  ha:{last:lastOf((b.exams||[]).concat(b.reports||[])),n:Math.max((b.reports||[]).length,(b.exams||[]).length)},
+  ha:{last:lastOf(hx.concat(hr)),n:Math.max(hr.length,hx.length)},
   vk:{last:lastOf(b.voka),n:(b.voka||[]).length},
   gm:{last:lastOf(b.grammatik),n:(b.grammatik||[]).length},
-  rs:{last:lastOf(b.results),n:(b.results||[]).length}};
- o.last=[o.ha.last,o.vk.last,o.gm.last].reduce(function(m,d){return d&&(!m||d>m)?d:m;},null);
+  rs:{last:lastOf((b.results||[]).concat(zx,zr)),n:(b.results||[]).length+Math.max(zr.length,zx.length)}};
+ o.last=[o.ha.last,o.vk.last,o.gm.last,lastOf(zx.concat(zr))].reduce(function(m,d){return d&&(!m||d>m)?d:m;},null);
  return o;
 }
 function cls(s){
@@ -369,7 +374,7 @@ function renderTable(){
  rows.sort(function(p,q){return (lvRank(p)-lvRank(q))||KO.compare(nmOf(p),nmOf(q));});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
- else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 결과<small>등록일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
+ else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 준비<small>등록일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
  if(lastErr) n.push('불러오기 오류: '+lastErr);

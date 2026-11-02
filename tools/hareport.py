@@ -33,7 +33,7 @@
       --rate 는 그 회차의 정답률(%)이고, 리포트가 2개 이상 쌓이면 GRAMMATIK 탭 위쪽 '실력 향상도' 그래프에 그려집니다.
       다시 올릴 때 --rate 를 생략하면 이전에 넣은 정답률을 그대로 둡니다.
   python3 tools/hareport.py add-result --id 김민서 --password 학생비밀번호 --html "SODA 말하기 결과 telc B2 MDT1 김민서 2026-10-30.html" [--exam "telc B2"] [--title 제목] [--date 2026-10-30]
-      "시험 결과" 탭에 결과 하나를 등록합니다. 과제 첨삭과 따로 분류되는 탭입니다.
+      "시험 준비" 탭에 결과 하나를 등록합니다. 과제 첨삭과 따로 분류되는 탭입니다.
       SODA SPRECHEN 앱이 만든 말하기 결과 파일은 --html 만 주면 됩니다. 파일 안의 정보로 시험 종류(telc B2, Goethe A2 ...), 제목, 작성일을 자동으로 채웁니다.
       여러 시험이 한 파일에 들어 있으면 시험 종류는 "말하기 종합"이 됩니다. --exam, --title, --date 로 직접 정할 수도 있습니다.
       같은 파일(같은 작성 시각)을 다시 올리면 덮어씁니다. 열람 페이지에서는 시험 종류 버튼으로 나뉘고, 각 시험 안에서 날짜순으로 1회, 2회 ... 로 보입니다.
@@ -454,7 +454,7 @@ def cmd_result(a):
     b['results'] = [x for x in res if x['n'] != n] + [r]
     b['results'].sort(key=lambda x: (x['date'], x['n']))
     write_bundle(b, sid, a.password)
-    print('시험 결과 저장: %s · %s · %s, %d자, 전체 %d개%s' % (exam, title, date, len(html), len(b['results']), ' (덮어씀)' if prev else ''))
+    print('시험 준비 저장: %s · %s · %s, %d자, 전체 %d개%s' % (exam, title, date, len(html), len(b['results']), ' (덮어씀)' if prev else ''))
 
 
 def cmd_show(a):
