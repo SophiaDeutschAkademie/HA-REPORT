@@ -490,7 +490,8 @@ def cmd_notify(a):
         # 비공개 알림 저장소에 이슈를 만들면 Power Automate의 GitHub 트리거가 받아 Teams로 보낸다.
         import subprocess
         r = subprocess.run(['gh', 'api', '-X', 'POST', 'repos/%s/issues' % repo, '-f', 'title=notify ' + a.id,
-                            '-f', 'body=' + body.decode('utf-8')], capture_output=True, text=True)
+                            '-f', 'body=' + body.decode('utf-8'), '-f', 'assignees[]=' + cfg.get('github_assignee', 'SophiaDeutschAkademie')],
+                           capture_output=True, text=True)
         if r.returncode:
             sys.exit('알림 이슈 생성 실패: ' + r.stderr.strip())
         print('Teams 알림 요청 등록:', a.id, label)
