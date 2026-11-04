@@ -465,6 +465,31 @@ def cmd_show(a):
     print(json.dumps(b, ensure_ascii=False, indent=1))
 
 
+NOTIFY_CONFIG = os.path.expanduser('~/.config/hareport/notify.json')
+NOTIFY_KINDS = {'첨삭': '첨삭 리포트', 'voka': 'VOKA 리포트', 'grammatik': 'GRAMMATIK 리포트', '시험': '시험 결과'}
+
+
+def cmd_notify(a):
+    """학생에게 Teams 채팅 알림을 보낸다. 설정 파일은 저장소 밖(~/.config/hareport/notify.json)에 둔다."""
+    import urllib.request
+    try:
+        cfg = json.load(open(NOTIFY_CONFIG, encoding='utf-8'))
+    except FileNotFoundError:
+        sys.exit('알림 설정 파일이 없습니다: ' + NOTIFY_CONFIG)
+    mail = cfg.get('students', {}).get(a.id)
+    if not mail:
+        sys.exit('Teams 주소가 등록되지 않은 학생입니다: ' + a.id)
+    label = NOTIFY_KINDS[a.kind]
+    msg = cfg.get('message', '{name}님, 새 {kind}가 올라왔습니다. 로그인해서 확인하십시오.\n{url}').format(
+        name=a.id, kind=label, url=cfg.get('url', ''))
+    body = json.dumps({'to': mail, 'message': msg}, ensure_ascii=False).encode('utf-8')
+    if a.dry_run:
+        print('보낼 내용(전송 안 함):', body.decode('utf-8')); return
+    req = urllib.request.Request(cfg['webhook_url'], data=body, headers={'Content-Type': 'application/json; charset=utf-8'})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        print('Teams 알림 전송:', a.id, label, r.status)
+
+
 def main():
     p = argparse.ArgumentParser(description='HA-REPORT 도구')
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -488,6 +513,7 @@ def main():
     w = sub.add_parser('add-result'); [w.add_argument('--' + k, required=True) for k in ('id', 'password', 'html')]
     w.add_argument('--exam'); w.add_argument('--title'); w.add_argument('--date'); w.set_defaults(f=cmd_result)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
+    nt = sub.add_parser('notify'); nt.add_argument('--id', required=True); nt.add_argument('--kind', choices=list(NOTIFY_KINDS), default='첨삭'); nt.add_argument('--dry-run', action='store_true'); nt.set_defaults(f=cmd_notify)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)
 
