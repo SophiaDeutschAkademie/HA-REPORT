@@ -489,11 +489,17 @@ def cmd_notify(a):
     if repo:
         # 비공개 알림 저장소에 이슈를 만들면 Power Automate의 GitHub 트리거가 받아 Teams로 보낸다.
         import subprocess
-        r = subprocess.run(['gh', 'api', '-X', 'POST', 'repos/%s/issues' % repo, '-f', 'title=notify ' + a.id,
-                            '-f', 'body=' + body.decode('utf-8'), '-f', 'assignees[]=' + cfg.get('github_assignee', 'SophiaDeutschAkademie')],
-                           capture_output=True, text=True)
-        if r.returncode:
-            sys.exit('알림 이슈 생성 실패: ' + r.stderr.strip())
+        def post(title, payload):
+            r = subprocess.run(['gh', 'api', '-X', 'POST', 'repos/%s/issues' % repo, '-f', 'title=' + title,
+                                '-f', 'body=' + payload.decode('utf-8'), '-f', 'assignees[]=' + cfg.get('github_assignee', 'SophiaDeutschAkademie')],
+                               capture_output=True, text=True)
+            if r.returncode:
+                sys.exit('알림 이슈 생성 실패: ' + r.stderr.strip())
+        post('notify ' + a.id, body)
+        copy_to = cfg.get('copy_to')  # 발송 사본을 받을 관리자 Teams 주소
+        if copy_to:
+            note = '[발송됨] %s · %s\n%s' % (a.id, label, msg)
+            post('copy ' + a.id, json.dumps({'to': copy_to, 'message': note}, ensure_ascii=False).encode('utf-8'))
         print('Teams 알림 요청 등록:', a.id, label)
         return
     req = urllib.request.Request(cfg['webhook_url'], data=body, headers={'Content-Type': 'application/json; charset=utf-8'})
