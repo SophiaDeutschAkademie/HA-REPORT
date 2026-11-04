@@ -485,6 +485,16 @@ def cmd_notify(a):
     body = json.dumps({'to': mail, 'message': msg}, ensure_ascii=False).encode('utf-8')
     if a.dry_run:
         print('보낼 내용(전송 안 함):', body.decode('utf-8')); return
+    repo = cfg.get('github_repo')
+    if repo:
+        # 비공개 알림 저장소에 이슈를 만들면 Power Automate의 GitHub 트리거가 받아 Teams로 보낸다.
+        import subprocess
+        r = subprocess.run(['gh', 'api', '-X', 'POST', 'repos/%s/issues' % repo, '-f', 'title=notify ' + a.id,
+                            '-f', 'body=' + body.decode('utf-8')], capture_output=True, text=True)
+        if r.returncode:
+            sys.exit('알림 이슈 생성 실패: ' + r.stderr.strip())
+        print('Teams 알림 요청 등록:', a.id, label)
+        return
     req = urllib.request.Request(cfg['webhook_url'], data=body, headers={'Content-Type': 'application/json; charset=utf-8'})
     with urllib.request.urlopen(req, timeout=30) as r:
         print('Teams 알림 전송:', a.id, label, r.status)
