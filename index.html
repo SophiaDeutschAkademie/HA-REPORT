@@ -93,6 +93,11 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 #tabs,#gtabs{flex-direction:column;flex-wrap:nowrap;gap:6px}
 #tabs .tab,#gtabs .tab{display:grid;grid-template-columns:3.2em 1fr;align-items:baseline;column-gap:10px;width:100%;padding:9px 12px}
 .tab .tn{white-space:nowrap}
+/* 시험 준비 리포트 목록: 세로 한 줄씩, 작은 카드 */
+#tabsz,#rtabs{flex-direction:column;flex-wrap:nowrap;gap:4px}
+#tabsz .tab,#rtabs .tab{display:grid;grid-template-columns:2.6em 1fr auto;align-items:center;column-gap:10px;width:100%;padding:5px 10px;font-size:13px;border-radius:8px;border-width:1px}
+#tabsz .tab .tt,#rtabs .tab .tt{display:contents}
+#tabsz .tab .tt small,#rtabs .tab .tt small{display:inline;margin:0;font-size:12px;white-space:nowrap}
 .tab .tt{display:block;overflow-wrap:anywhere}
 .tab .tt small{display:block;font-weight:500;color:#6b665f;margin-top:1px}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
