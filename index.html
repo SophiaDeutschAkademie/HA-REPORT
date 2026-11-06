@@ -357,13 +357,24 @@ function isZ(l){return /^ZERTIFIKAT/.test(l||'');}
 function levelsOf(d,z){
  var L=SHOW.filter(function(k){return isZ(k)===!!z;}), seen={};
  (d.exams||[]).concat(d.reports||[]).forEach(function(x){seen[lvOf(x,d)]=1;});
+ if(z) (d.results||[]).forEach(function(x){var L=resLevel(x); if(L) seen[L]=1;});
  Object.keys(seen).forEach(function(k){if(isZ(k)===!!z&&L.indexOf(k)<0&&LORDER.indexOf(k)>=0)L.push(k);});
  return L.sort(function(p,q){return LORDER.indexOf(p)-LORDER.indexOf(q);});
 }
 function itemsFor(d,L){
  function pick(a){return (a||[]).filter(function(x){return lvOf(x,d)===L;}).sort(function(p,q){return p.n-q.n;});}
- return {exams:pick(d.exams),reps:pick(d.reports)};
+ var reps=pick(d.reports);
+ if(isZ(L)){
+  /* 시험 결과(말하기 연습 등)도 같은 레벨이면 리포트 목록에 날짜순으로 함께 넣습니다. 번호는 목록 순서(seq)로 붙입니다 */
+  var R=(d.results||[]).filter(function(x){return resLevel(x)===L;});
+  reps=reps.map(function(x,i){return {r:x,k:0,i:i};}).concat(R.map(function(x,i){return {r:x,k:1,i:i};}))
+   .sort(function(p,q){var a=String(p.r.date||''),b=String(q.r.date||'');return (a<b?-1:a>b?1:0)||(p.k-q.k)||(p.k?(p.r.n-q.r.n):(p.r.n-q.r.n));})
+   .map(function(o,i){var c={};for(var k in o.r)c[k]=o.r[k];c.seq=i+1;return c;});
+ }
+ return {exams:pick(d.exams),reps:reps};
 }
+/* 시험 결과의 시험 종류(telc B2, Goethe B1 ...)에서 ZERTIFIKAT 레벨을 찾습니다. 레벨이 없는 결과(말하기 종합 등)는 null */
+function resLevel(x){var m=String(x.exam||'').match(/\b(A2|B1|B2)$/);return m?'ZERTIFIKAT '+m[1]:null;}
 function startLevel(d){
  var best=null;
  (d.exams||[]).forEach(function(e){if(isZ(lvOf(e,d)))return; if(!best||String(e.date||'')>=String(best.date||''))best=e;});
@@ -485,7 +496,7 @@ function renderGrammatik(){
 /* 시험 준비 탭: ZERTIFIKAT 레벨의 발전 기록·리포트와, 시험 형식으로 본 결과(말하기 연습 결과 등)를 모아 보여 줍니다. 과제 첨삭과 따로 분류합니다 */
 function resKind(x){return x.exam||'기타';}
 function resKinds(d){
- var K=[]; (d.results||[]).forEach(function(x){var k=resKind(x); if(K.indexOf(k)<0) K.push(k);});
+ var K=[]; (d.results||[]).forEach(function(x){if(resLevel(x))return; var k=resKind(x); if(K.indexOf(k)<0) K.push(k);});
  return K.sort(function(p,q){return p.localeCompare(q,'ko');});
 }
 function resOf(d,k){return (d.results||[]).filter(function(x){return resKind(x)===k;}).sort(function(p,q){return (String(p.date||'')<String(q.date||'')?-1:String(p.date||'')>String(q.date||'')?1:0)||(p.n-q.n);});}
@@ -493,7 +504,7 @@ function prepStart(d){
  var best=null, bd='';
  function upd(t,v,date,n){var ds=String(date||''); if(!best||ds>bd||(ds===bd&&(n||0)>=best.n)){best={t:t,v:v,n:n||0};bd=ds;}}
  (d.exams||[]).concat(d.reports||[]).forEach(function(x){var L=lvOf(x,d); if(isZ(L)) upd('lv',L,x.date,0);});
- (d.results||[]).forEach(function(x){upd('res',resKind(x),x.date,x.n);});
+ (d.results||[]).forEach(function(x){var L=resLevel(x); if(L) upd('lv',L,x.date,0); else upd('res',resKind(x),x.date,x.n);});
  return best?{t:best.t,v:best.v}:{t:'lv',v:levelsOf(d,true)[0]};
 }
 function prepBtns(d){
@@ -699,7 +710,7 @@ function levelBody(L,sf){
  if(!reps.length) h+='<p class="note">아직 등록된 '+esc(L)+' 리포트가 없습니다.</p>';
  else{
   h+='<div class="tabs" id="tabs'+sf+'" role="tablist">';
-  reps.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===reps.length-1)+'"><span class="tn">'+r.n+'회</span><span class="tt">'+esc(r.title)+'<small>'+esc(r.date||'')+'</small></span></button>';});
+  reps.forEach(function(r,i){h+='<button class="tab" role="tab" data-i="'+i+'" aria-selected="'+(i===reps.length-1)+'"><span class="tn">'+(r.seq||r.n)+'회</span><span class="tt">'+esc(r.title)+'<small>'+esc(r.date||'')+'</small></span></button>';});
   h+='</div><iframe id="rf'+sf+'" title="'+esc(L)+' 리포트" sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"></iframe>';
  }
  h+='</section>';
