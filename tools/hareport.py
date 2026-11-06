@@ -37,6 +37,10 @@
       SODA SPRECHEN 앱이 만든 말하기 결과 파일은 --html 만 주면 됩니다. 파일 안의 정보로 시험 종류(telc B2, Goethe A2 ...), 제목, 작성일을 자동으로 채웁니다.
       여러 시험이 한 파일에 들어 있으면 시험 종류는 "말하기 종합"이 됩니다. --exam, --title, --date 로 직접 정할 수도 있습니다.
       같은 파일(같은 작성 시각)을 다시 올리면 덮어씁니다. 열람 페이지에서는 시험 종류 버튼으로 나뉘고, 각 시험 안에서 날짜순으로 1회, 2회 ... 로 보입니다.
+  python3 tools/hareport.py add-training --id 김민서 --password 학생비밀번호 --html 리포트.html --title "B2 01 · 02" [--kind Lesetraining | --source "학습 결과.txt"] [--n 1] [--date 2026-11-06]
+      "TRAINING" 탭에 훈련 기록 리포트를 등록합니다. 훈련 종류(Lesetraining, Hörtraining, Sprechtraining 등)별로 나뉘어 보입니다.
+      --kind 를 주거나, 학생이 보낸 기록 파일을 --source 로 주면 파일 안의 앱 이름(예: "앱: SODA-Lehrwerk Lesetraining")에서 종류를 알아냅니다.
+      회차(--n)는 종류 안에서 셉니다. 생략하면 그 종류의 다음 번호이고, 같은 번호를 다시 올리면 덮어씁니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -458,15 +462,52 @@ def cmd_result(a):
     print('시험 준비 저장: %s · %s · %s, %d자, 전체 %d개%s' % (exam, title, date, len(html), len(b['results']), ' (덮어씀)' if prev else ''))
 
 
+TRAINING_KINDS = {
+    'Lesetraining': ['lesetraining', '독해훈련', '독해 훈련'],
+    'Hörtraining': ['hörtraining', 'hoertraining', 'hoeertraining', '듣기훈련', '듣기 훈련'],
+    'Sprechtraining': ['sprechtraining', '말하기훈련', '말하기 훈련'],
+}
+
+
+def training_kind(text):
+    """훈련 종류 이름이나 기록 파일의 앞부분 글에서 표준 종류 이름(Lesetraining 등)을 찾습니다. 없으면 None입니다."""
+    t = unicodedata.normalize('NFKC', text or '').lower()
+    for kind, names in TRAINING_KINDS.items():
+        if any(n in t for n in names):
+            return kind
+    return None
+
+
+def cmd_training(a):
+    b, sid = read_bundle(a.id, a.password)
+    html = Path(a.html).read_text(encoding='utf-8')
+    kind = None
+    if a.kind:
+        kind = training_kind(a.kind) or a.kind.strip()
+    elif a.source:
+        kind = training_kind(Path(a.source).read_text(encoding='utf-8')[:600])
+    if not kind:
+        sys.exit('훈련 종류를 알 수 없습니다. --kind Lesetraining 처럼 주거나, 앱 이름이 적힌 기록 파일을 --source 로 주십시오.')
+    tr = b.get('training', [])
+    n = a.n or max([x['n'] for x in tr if x['kind'] == kind] + [0]) + 1
+    date = a.date or today_kst()
+    prev = next((x for x in tr if x['kind'] == kind and x['n'] == n), None)
+    t = {'n': n, 'kind': kind, 'title': a.title, 'date': date, 'html': html}
+    b['training'] = [x for x in tr if not (x['kind'] == kind and x['n'] == n)] + [t]
+    b['training'].sort(key=lambda x: (x['kind'], x['date'], x['n']))
+    write_bundle(b, sid, a.password)
+    print('TRAINING 저장: %s %d회 · %s · %s, %d자, 전체 %d개%s' % (kind, n, a.title, date, len(html), len(b['training']), ' (덮어씀)' if prev else ''))
+
+
 def cmd_show(a):
     b, sid = read_bundle(a.id, a.password)
-    for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []) + b.get('results', []):
+    for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []) + b.get('results', []) + b.get('training', []):
         r['html'] = '(%d자)' % len(r['html'])
     print(json.dumps(b, ensure_ascii=False, indent=1))
 
 
 NOTIFY_CONFIG = os.path.expanduser('~/.config/hareport/notify.json')
-NOTIFY_KINDS = {'첨삭': '첨삭 리포트', 'voka': 'VOKA 리포트', 'grammatik': 'GRAMMATIK 리포트', '시험': '시험 결과'}
+NOTIFY_KINDS = {'첨삭': '첨삭 리포트', 'voka': 'VOKA 리포트', 'grammatik': 'GRAMMATIK 리포트', '시험': '시험 결과', 'training': 'TRAINING 리포트'}
 
 
 def cmd_notify(a):
@@ -529,6 +570,8 @@ def main():
     g.add_argument('--n', type=int, required=True); g.add_argument('--rate', type=int); g.set_defaults(f=cmd_grammatik)
     w = sub.add_parser('add-result'); [w.add_argument('--' + k, required=True) for k in ('id', 'password', 'html')]
     w.add_argument('--exam'); w.add_argument('--title'); w.add_argument('--date'); w.set_defaults(f=cmd_result)
+    tg = sub.add_parser('add-training'); [tg.add_argument('--' + k, required=True) for k in ('id', 'password', 'html', 'title')]
+    tg.add_argument('--kind'); tg.add_argument('--source'); tg.add_argument('--n', type=int); tg.add_argument('--date'); tg.set_defaults(f=cmd_training)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     nt = sub.add_parser('notify'); nt.add_argument('--id', required=True); nt.add_argument('--kind', choices=list(NOTIFY_KINDS), default='첨삭'); nt.add_argument('--dry-run', action='store_true'); nt.set_defaults(f=cmd_notify)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
