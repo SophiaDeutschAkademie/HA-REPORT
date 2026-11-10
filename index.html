@@ -1150,7 +1150,7 @@ function showReport(reps,i,fid,nid){
  var r=reps[i], f=$('#'+(fid||'rf')), nw=$('#'+(nid||'nw'));
  f.onload=function(){
   var doc=f.contentDocument; if(!doc) return;
-  function fit(){f.style.height=Math.max(420,doc.documentElement.scrollHeight)+'px';}
+  function fit(){var y=window.scrollY;f.style.height='1px';var h=doc.documentElement.scrollHeight;f.style.height=Math.max(420,h)+'px';if(window.scrollY!==y)window.scrollTo(0,y);}
   fit();
   try{new ResizeObserver(fit).observe(doc.body);}catch(e){setInterval(fit,800);}
   doc.addEventListener('click',function(ev){
