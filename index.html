@@ -133,6 +133,10 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
 .golist li.big{grid-column:1/-1}
 .golist li.big a{min-height:96px;padding:18px 20px}
 .golist li.big b{font-size:21px}
+.golist li.big a{background:var(--acc);border-color:var(--acc);color:#fff}
+.golist li.big a:hover,.golist li.big a:focus-visible{background:#3B4863;border-color:#3B4863}
+.golist li.big .ds{color:rgba(255,255,255,.78)}
+.golist li.big .gar{color:#fff}
 .golist li.big .ds{font-size:14.5px}
 /* 첫 화면의 격언 */
 .quote{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 14px}
@@ -638,9 +642,9 @@ function viewHub(){
  $('#hgo').addEventListener('click',function(){route('learn');});
  window.scrollTo(0,0);
 }
-/* 학습 진행하기: 학습 앱 목록. 주소는 같은 사이트(github.io) 안의 경로입니다. probe가 있는 항목은 그 주소가 실제로 열릴 때만 연결합니다 */
+/* 학습 진행하기: 학습 앱 목록. 누르면 새 창(새 탭)에서 열립니다. 주소는 같은 사이트(github.io) 안의 경로입니다. probe가 있는 항목은 그 주소가 실제로 열릴 때만 연결합니다 */
 var LEARN=[
- {k:'lw',t:'SODA-LEHRWERK',d:'문법 · 읽기 · 듣기 · 쓰기 · 말하기 훈련 · 모의고사',u:'/SODA-Lehrwerk/#inhalt',big:1},
+ {k:'lw',t:'LEHRWERK',d:'문법 · 읽기 · 듣기 · 쓰기 · 말하기 훈련 · 모의고사',u:'/SODA-Lehrwerk/#inhalt',big:1},
  {k:'vk',t:'VOKALAB',d:'독일어 단어장 A1–C1',u:'/SODA-Lehrwerk/vokalab/',big:1},
  {k:'gr',t:'SODA GRAMMATIK',d:'문법 16 Lektion · 연습문제 · 복습 · 과제',u:'/SODA-GRAMMATIK-KURS/#toc',lv:'GRAMMATIK'},
  {k:'a2',t:'SODA A2',d:'A2 과정 챕터와 과제',u:'/SODA-A2/#list',lv:'A2'},
@@ -649,7 +653,7 @@ var LEARN=[
  {k:'c1',t:'SODA C1',d:'C1 과정 챕터와 과제',u:'/SODA-C1/#list',lv:'C1',probe:'/SODA-C1/'}
 ], probed={};
 function learnItem(x,lv){
- return '<a href="'+esc(x.u)+'"><span><b>'+esc(x.t)+(x.lv&&x.lv===lv?'<span class="tag">내 레벨</span>':'')+'</b><span class="ds">'+esc(x.d)+'</span></span><span class="gar">'+IC_AR+'</span></a>';
+ return '<a href="'+esc(x.u)+'" target="_blank" rel="noopener"><span><b>'+esc(x.t)+(x.lv&&x.lv===lv?'<span class="tag">내 레벨</span>':'')+'</b><span class="ds">'+esc(x.d)+'</span></span><span class="gar">'+IC_AR+'</span></a>';
 }
 function viewLearn(){
  $('#top').hidden=false; window.onresize=null;
