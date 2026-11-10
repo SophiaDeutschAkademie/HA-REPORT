@@ -179,15 +179,15 @@ var AREAS=[
  {k:'reading',  name:'독해',        color:'#8a4f7d', shape:'triangle'},
  {k:'listening',name:'듣기',        color:'#b0653a', shape:'diamond'},
  {k:'satz',     name:'문장 만들기', color:'#5b6b78', shape:'circleo'},
- {k:'writing',  name:'작문(추정)',  color:'#1f8f8f', shape:'squareo'}
+ {k:'writing',  name:'작문',  color:'#1f8f8f', shape:'squareo'}
 ];
 var AREAS_BASE=AREAS;
 /* 시험 준비(ZERTIFIKAT) 레벨: 읽기, 듣기, 쓰기, 말하기. telc 학생은 Sprachbausteine를 더합니다 */
 var Z_READ={k:'reading',name:'읽기',color:'#8a4f7d',shape:'triangle'}, Z_LIST={k:'listening',name:'듣기',color:'#b0653a',shape:'diamond'},
- Z_WRIT={k:'writing',name:'쓰기(추정)',color:'#1f8f8f',shape:'squareo'}, Z_SPEAK={k:'speaking',name:'말하기(추정)',color:'#2e5f8a',shape:'circle'},
+ Z_WRIT={k:'writing',name:'쓰기',color:'#1f8f8f',shape:'squareo'}, Z_SPEAK={k:'speaking',name:'말하기',color:'#2e5f8a',shape:'circle'},
  Z_SPRA={k:'sprach',name:'Sprachbausteine',color:'#3a7d5c',shape:'square'};
-/* 과제 첨삭 레벨(A2 · B1 · B2): 말하기 연습 점수(speaking)가 있는 시험이 하나라도 있으면 말하기(추정)를 더합니다 */
-var R_SPEAK={k:'speaking',name:'말하기(추정)',color:'#5a4fa0',shape:'triangleo'};
+/* 과제 첨삭 레벨(A2 · B1 · B2): 말하기 연습 점수(speaking)가 있는 시험이 하나라도 있으면 말하기를 더합니다 */
+var R_SPEAK={k:'speaking',name:'말하기',color:'#5a4fa0',shape:'triangleo'};
 function hasSpeak(L,d){return ((d&&d.exams)||[]).some(function(e){return (e.level||d.level)===L&&e.scores&&e.scores.speaking!=null;});}
 function areasFor(L,d){
  if(!/^ZERTIFIKAT/.test(L||'')) return hasSpeak(L,d)?AREAS_BASE.concat([R_SPEAK]):AREAS_BASE;
@@ -756,7 +756,7 @@ function levelBody(L,sf){
  }
  var h='<section class="card"><h2>'+esc(L)+' 발전 기록</h2>';
  if(!exams.length) h+='<p class="note">아직 '+esc(L)+' 시험 기록이 없습니다.</p>';
- else h+='<div class="chart-wrap" id="cw'+sf+'"></div><div class="legend" id="lg'+sf+'">'+legendHtml()+'</div><p class="note">영역 이름을 누르면 선을 숨기거나 다시 보입니다. '+(/^ZERTIFIKAT/.test(L)?'쓰기와 말하기는 선생님이 추정한 값이고, 나머지는 정답률입니다.':(hasSpeak(L,d)?'작문은 선생님이 추정한 레벨 부합도, 말하기는 말하기 연습 평가 등급(A 100 · B 75 · C 50 · D 25 · E 0)의 평균이고, 나머지는 정답률입니다. 말하기 연습을 하지 않은 회차는 측정 불가로 표시합니다.':'작문은 선생님이 추정한 레벨 부합도이고, 나머지는 정답률입니다.'))+'</p>'+summaryHtml(exams)+tableHtml(exams);
+ else h+='<div class="chart-wrap" id="cw'+sf+'"></div><div class="legend" id="lg'+sf+'">'+legendHtml()+'</div><p class="note">영역 이름을 누르면 선을 숨기거나 다시 보입니다. '+(/^ZERTIFIKAT/.test(L)?'쓰기와 말하기는 선생님이 평가한 점수이고, 나머지는 정답률입니다.':(hasSpeak(L,d)?'작문은 선생님이 평가한 레벨 부합도, 말하기는 말하기 연습 평가 등급(A 100 · B 75 · C 50 · D 25 · E 0)의 평균이고, 나머지는 정답률입니다. 말하기 연습을 하지 않은 회차는 측정 불가로 표시합니다.':'작문은 선생님이 평가한 레벨 부합도이고, 나머지는 정답률입니다.'))+'</p>'+summaryHtml(exams)+tableHtml(exams);
  h+='</section>';
  h+='<section class="card" style="padding:16px"><div class="rhead"><h2 style="margin:0">'+esc(L)+' 리포트</h2><button class="btn" id="nw'+sf+'" style="display:none">새 창으로 열기</button></div>';
  if(!reps.length) h+='<p class="note">아직 등록된 '+esc(L)+' 리포트가 없습니다.</p>';
