@@ -477,6 +477,7 @@ function viewLogin(opt){
   session={data:o.data,sid:sid,pw:null,kb:o.bits,uid:uidv};
   saveSess(true);
   if(!spOf(o.data)) findSp(uidv,pwv,sid);
+  if(opt.back){location.replace(opt.back);return;}
   route(opt.next||'hub',true);
  });
 }
@@ -1188,8 +1189,18 @@ function leave(){
 }
 
 window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;},spApi:SP_API};
+/* 다른 학습 앱(SODA GRAMMATIK 등)이 로그인 확인을 위해 보낸 경우: 주소의 ?next=(같은 사이트 안의 경로)로 로그인 뒤 돌아갑니다.
+   relogin=1이면 저장된 로그인이 있어도 비밀번호를 다시 받습니다(학생 파일이 새로 저장되어 저장된 키로 열리지 않을 때) */
+var Q=new URLSearchParams(location.search), BACK=Q.get('next')||'', RELOGIN=Q.get('relogin')==='1';
+if(!/^\/(?!\/)[^\\]*$/.test(BACK)) BACK='';
+function backName(u,j){var g=/^\/SODA-GRAMMATIK-KURS\//i.test(u);return (g?'SODA GRAMMATIK':'이 학습 자료')+(j==='topic'?(g?'은':'는'):'');}
+if(BACK){
+ try{history.replaceState(null,'',location.pathname);}catch(e){}
+ if(!RELOGIN&&restore()) location.replace(BACK);
+ else viewLogin({back:BACK,note:RELOGIN?'학습 기록이 새로 등록되어 비밀번호를 한 번 더 확인합니다. 로그인하면 '+backName(BACK)+' 화면으로 돌아갑니다.':backName(BACK,'topic')+' 소피아 독일어학원 수강생 전용입니다. 학습 포탈 아이디와 비밀번호로 로그인하면 바로 이어서 열립니다.'});
+}
 /* 저장된 로그인이 있으면 로그인 화면 없이 첫 화면을 엽니다 */
-if(restore()) route(hashView()||'hub',true); else{if(location.hash) setUrl(''); viewLogin();}
+else if(restore()) route(hashView()||'hub',true); else{if(location.hash) setUrl(''); viewLogin();}
 })();
 </script>
 <script>
