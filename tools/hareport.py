@@ -47,7 +47,7 @@
       --clear 는 그 레벨에 적어 둔 값을 지웁니다.
   python3 tools/hareport.py set-sprechen --id 김민서 --password 학생비밀번호 --sp-password 말하기비밀번호 [--sp-id 말하기아이디] [--clear]
       학생의 말하기 연습(SODA Sprechen) 계정을 학생 파일에 넣습니다. 학생이 학습 포탈에 로그인하면 말하기 연습에서는 이 계정으로 바로 로그인됩니다.
-      --sp-id 를 생략하면 말하기 아이디를 학생 아이디와 같게 봅니다. --clear 는 연결을 지웁니다. 관리자 페이지의 "말하기 계정"에서도 할 수 있습니다.
+      --sp-id 를 생략하면 말하기 아이디를 학생 아이디와 같게 봅니다. --clear 는 연결을 지웁니다. 포탈과 말하기의 아이디·비밀번호가 같은 학생은 연결하지 않아도 됩니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.

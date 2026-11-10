@@ -7,7 +7,7 @@ var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
 var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2','SNU'], EXAMS=['telc','GZ'];
 function isZ(l){return /^ZERTIFIKAT/.test(l||'');}
-var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={}, spOpen={};
+var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
 
 function H(){return window.HA;}
 function $(s,r){return (r||document).querySelector(s);}
@@ -148,7 +148,7 @@ function summarize(b){
  var ex=b.exams||[], rp=b.reports||[];
  var hx=ex.filter(function(x){return !inZ(x);}), hr=rp.filter(function(x){return !inZ(x);});
  var zx=ex.filter(inZ), zr=rp.filter(inZ);
- var o={name:b.name,level:b.level,exam:b.exam||'',gr:Array.isArray(b.grammatik),sp:(b.sprechen&&b.sprechen.id)?String(b.sprechen.id):'',
+ var o={name:b.name,level:b.level,exam:b.exam||'',gr:Array.isArray(b.grammatik),
   ha:{last:lastOf(hx.concat(hr)),n:Math.max(hr.length,hx.length)},
   vk:{last:lastOf(b.voka),n:(b.voka||[]).length},
   gm:{last:lastOf(b.grammatik),n:(b.grammatik||[]).length},
@@ -202,8 +202,6 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.asec h2{margin-bottom:2px}.asec h3{margin:18px 0 2px}'
 +'.cred{border:1.5px solid var(--acc);background:#f1f3f8;border-radius:12px;padding:12px 14px;margin-top:10px}'
 +'.cred div{margin:2px 0}'
-+'.lnk.spf{flex-wrap:wrap}.lnk.spf input{width:128px}'
-+'.aform textarea{width:100%;min-height:96px;resize:vertical;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;line-height:1.6;background:#fff;color:var(--ink)}'
 +'.cred.warnbox{border-color:#c9a09b;background:#fbf1ef}'
 +'.thr{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)}.thr input{width:60px;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:14px}';
 function injectStyle(){
@@ -247,7 +245,7 @@ function open(o){
  if(!keep){
   var sess=H().session(); if(!sess||!sess.data) return;
   S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
-  st={}; shown={}; pending={}; spOpen={}; flt='all'; thr=7; lastErr=''; loadedAt=null; tokenChecked=false;
+  st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null; tokenChecked=false;
   try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
   if(A.token) token=A.token; /* 관리자 파일에 암호화되어 들어 있는 토큰 */
  }
@@ -270,8 +268,6 @@ function open(o){
   +'<div><button type="button" class="btn main" id="aadd">추가</button></div></div>'
   +'<h3>기존 학생 연결</h3><p class="note">이미 저장소에 있는 학생을 명단에 넣습니다. 아이디와 비밀번호가 맞아야 합니다.</p>'
   +'<div class="aform"><div><label for="li">아이디</label><input id="li" type="text" autocomplete="off"></div><div><label for="lp">비밀번호</label><input id="lp" type="password" autocomplete="off"></div><div><button type="button" class="btn main" id="alk">연결</button></div></div>'
-  +'<h3>말하기 계정 연결</h3><p class="note">학생이 학습 포탈에 로그인하면 말하기 연습(SODA Sprechen)이 로그인 창 없이 열리도록, 학생의 말하기 계정을 학생 파일에 넣습니다. 포탈과 말하기 연습의 아이디·비밀번호가 같은 학생은 연결하지 않아도 자동으로 됩니다. 한 명씩 연결할 때는 위 학생 현황의 "말하기 계정" 버튼을 쓰고, 여러 명은 아래에 한 줄에 한 명씩 적습니다. 순서는 "학생 아이디, 말하기 아이디, 말하기 비밀번호"이고 쉼표나 탭으로 나눕니다. 말하기 아이디가 학생 아이디와 같으면 "학생 아이디, 말하기 비밀번호"만 적어도 됩니다. 저장하기 전에 말하기 서버에서 계정이 맞는지 확인합니다.</p>'
-  +'<div class="aform" style="grid-template-columns:1fr"><div><label for="spb">학생 아이디, 말하기 아이디, 말하기 비밀번호</label><textarea id="spb" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="김민서, minseo, 말하기비밀번호"></textarea></div><div><button type="button" class="btn main" id="spbs">한꺼번에 연결</button></div></div>'
   +'<h3>비밀번호 분실 시 새로 만들기</h3><p class="note">저장소에 파일은 있는데 비밀번호를 모르는 학생의 파일을 새 비밀번호로 다시 만듭니다. <b>그 학생의 기존 기록(시험 기록, 리포트, VOKA, GRAMMATIK)은 모두 사라지고 빈 파일이 됩니다.</b> 이전 파일은 비밀번호 없이는 열 수 없기 때문입니다. 아이디는 학생이 로그인할 때 쓰던 것과 같아야 합니다. 비밀번호는 비워 두면 20자리로 자동 생성합니다.</p>'
   +'<div class="aform"><div><label for="rn">이름</label><input id="rn" type="text" autocomplete="off"></div><div><label for="ri">아이디</label><input id="ri" type="text" autocomplete="off" placeholder="비우면 이름"></div>'
   +'<div><label for="rl">레벨·반</label><select id="rl">'+LEVELS.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select></div>'
@@ -301,7 +297,6 @@ function open(o){
  $('#al').addEventListener('change',function(){$('#aew').hidden=!isZ(this.value);if(!isZ(this.value))$('#ae').value='';});
  $('#alk').addEventListener('click',function(){linkStudent($('#li').value.trim(),$('#lp').value);});
  $('#arst').addEventListener('click',resetStudent);
- $('#spbs').addEventListener('click',bulkSprechen);
  $('#aout').addEventListener('click',function(e){
   var b=e.target.closest('[data-a="copy"]'); if(!b) return;
   try{navigator.clipboard.writeText(b.dataset.t);b.textContent='복사했습니다';}catch(x){b.textContent='복사하지 못했습니다';}
@@ -311,7 +306,7 @@ function open(o){
  if(keep) renderTable(); else loadAll();
 }
 function close(){
- gen++; A=null; S=null; st={}; shown={}; pending={}; spOpen={}; token=''; working=false;
+ gen++; A=null; S=null; st={}; shown={}; pending={}; token=''; working=false;
  var a=H()&&H().app; if(a) a.className='wrap';
 }
 
@@ -349,7 +344,7 @@ function rowHtml(s){
  var x=st[s.fid]||{state:'load'}, c=cls(s), m=x.state==='ok'?x.sum:null;
  var name=m?m.name:s.name, lvl=m?m.level:s.level;
  var h='<tr class="'+(c.k==='late'?'late':'')+'" data-f="'+esc(s.fid)+'">';
- h+='<td>'+(x.state==='ok'?'<a href="#" class="nm" data-a="view">'+esc(name)+'</a>':'<b>'+esc(name)+'</b>')+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+(m&&m.sp?'<small style="white-space:nowrap">말하기 계정 '+esc(m.sp)+'</small>':'')+'</td>';
+ h+='<td>'+(x.state==='ok'?'<a href="#" class="nm" data-a="view">'+esc(name)+'</a>':'<b>'+esc(name)+'</b>')+(s.id&&s.id!==name?'<small>아이디 '+esc(s.id)+'</small>':'')+'</td>';
  var lopts=LEVELS.slice(); if(lvl&&lopts.indexOf(lvl)<0) lopts.unshift(lvl); if(!lvl) lopts.unshift('-');
  h+='<td><select class="lvs" aria-label="'+esc(name)+' 레벨">'+lopts.map(function(l){return '<option'+(l===(lvl||'-')?' selected':'')+'>'+esc(l)+'</option>';}).join('')+'</select>'+(isZ(lvl)?'<select class="lvs exs" aria-label="'+esc(name)+' 시험 종류"><option value="">시험 종류 -</option>'+EXAMS.map(function(x){return '<option'+(x===((m&&m.exam)||s.exam||'')?' selected':'')+'>'+x+'</option>';}).join('')+'</select>':'')+(m&&m.gr&&lvl!=='GRAMMATIK'?'<small>GRAMMATIK 탭 있음</small>':'')+'</td>';
  ['ha','vk','gm','rs','tr'].forEach(function(k){
@@ -361,17 +356,14 @@ function rowHtml(s){
  h+='<td><span class="badge '+c.k+'">'+esc(c.label)+'</span>'+sub2+'</td>';
  var mg='<div class="mgb">';
  if(s.password) mg+='<button type="button" class="btn sm" data-a="pw">'+(shown[s.fid]?'숨기기':'비밀번호')+'</button>';
- if(s.password&&m) mg+='<button type="button" class="btn sm" data-a="sp">말하기 계정</button>';
  mg+='<button type="button" class="btn sm dng" data-a="del">삭제</button></div>';
  if(shown[s.fid]&&s.password) mg+='<small class="mono">'+esc(s.password)+'</small>';
- if(spOpen[s.fid]&&s.password&&m) mg+='<div class="lnk spf"><input type="text" class="spi" placeholder="말하기 아이디" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(m.sp||s.id||'')+'"><input type="text" class="spp" placeholder="말하기 비밀번호" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn sm" data-a="spsave">저장</button>'+(m.sp?'<button type="button" class="btn sm dng" data-a="spclr">연결 해제</button>':'')+'</div>';
  if(x.state==='nopw'||x.state==='badpw') mg+='<div class="lnk"><input type="password" class="rp" placeholder="비밀번호" autocomplete="off"><button type="button" class="btn sm" data-a="link">연결</button></div>';
  return h+'<td>'+mg+'</td></tr>';
 }
 function renderTable(){
  if(!A||!$('#atb')) return;
  var keep={}; document.querySelectorAll('#atb tr[data-f] .rp').forEach(function(i){if(i.value)keep[i.closest('tr').dataset.f]=i.value;});
- var keepSp={}; document.querySelectorAll('#atb tr[data-f] .spf').forEach(function(d){keepSp[d.closest('tr').dataset.f]=[d.querySelector('.spi').value,d.querySelector('.spp').value];});
  var sm=summaryHtml(); $('#asum').innerHTML=sm.html;
  var F=[['all','전체',sm.c.all],['late',thr+'일 이상 지남',sm.c.late],['norec','제출 없음',sm.c.norec],['ok','정상',sm.c.ok],['warn','확인 필요',sm.c.warn]];
  $('#aflt').innerHTML=F.map(function(f){return '<button type="button" class="tab" role="tab" data-k="'+f[0]+'" aria-selected="'+(flt===f[0])+'">'+f[1]+' '+f[2]+'</button>';}).join('');
@@ -386,7 +378,6 @@ function renderTable(){
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
  else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 준비<small>등록일</small></th><th>TRAINING<small>등록일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
- Object.keys(keepSp).forEach(function(f){var d=document.querySelector('#atb tr[data-f="'+f+'"] .spf');if(d){d.querySelector('.spi').value=keepSp[f][0];d.querySelector('.spp').value=keepSp[f][1];}});
  var n=[];
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  $('#anote').textContent=n.join(' ');
@@ -400,15 +391,6 @@ function onTable(e){
  else if(a==='del') removeStudent(s);
  else if(a==='link') linkStudent(s.id,tr.querySelector('.rp').value);
  else if(a==='view'){e.preventDefault();viewStudent(s);}
- else if(a==='sp'){spOpen[fid]=!spOpen[fid];renderTable();}
- else if(a==='spsave'){
-  var si=tr.querySelector('.spi').value.trim(), sw=tr.querySelector('.spp').value.trim();
-  if(!si||!sw){say('말하기 아이디와 말하기 비밀번호를 입력하십시오.',true);return;}
-  setSprechen([{s:s,id:si,pw:sw}]);
- }
- else if(a==='spclr'){
-  if(window.confirm((s.name||s.id)+' 학생의 말하기 계정 연결을 지웁니다. 말하기 연습 계정 자체는 그대로 있고, 학생은 말하기 연습에서 다시 직접 로그인해야 합니다.\n계속하시겠습니까?')) setSprechen([{s:s,clear:true}]);
- }
 }
 
 /* 현황 불러오기 */
@@ -553,72 +535,6 @@ async function linkStudent(idv,pw){
   say(b.name+' 학생을 명단에 반영했습니다.');
  }catch(e){say(msgOf(e),true);}
  finally{busy(false);renderTable();}
-}
-/* 말하기 연습(SODA Sprechen) 계정 연결.
-   학생 파일의 sprechen 값({id, pw})을 학습 포탈(index.html)이 로그인할 때 읽어 말하기 연습에 넘기므로, 학생은 말하기 연습에서 다시 로그인하지 않습니다.
-   계정 자체는 말하기 서버(Worker)에 있고, 여기서는 그 아이디와 비밀번호를 학생 파일에 적어 두기만 합니다. */
-function normId(v){return String(v||'').normalize('NFKC').replace(/\s+/g,'').toLowerCase();}
-async function spCheck(id,pw){ /* 'ok' 맞음, 'bad' 서버가 거절, 'net' 서버에 연결하지 못함 */
- try{
-  var r=await fetch(H().spApi+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,pw:pw})});
-  if(r.ok) return 'ok';
-  return (r.status>=400&&r.status<500)?'bad':'net';
- }catch(e){return 'net';}
-}
-/* items: [{s:명단 항목, id:말하기 아이디, pw:말하기 비밀번호}] 또는 [{s:명단 항목, clear:true}]. 저장하지 못한 학생 수를 돌려줍니다 */
-async function setSprechen(items){
- if(working||!items.length||!needToken()) return -1;
- busy(true); $('#aout').innerHTML='';
- var done=[], bad=[], unver=[], i, it;
- try{
-  for(i=0;i<items.length;i++){
-   it=items[i]; if(it.clear) continue;
-   say('말하기 서버에서 계정을 확인하고 있습니다. ('+(i+1)+'/'+items.length+')');
-   it.chk=await spCheck(it.id,it.pw);
-  }
-  say('저장소 상태를 확인하고 있습니다.');
-  var fresh=await adminFresh(), changes=[], sums={}, cur, nm, b;
-  for(i=0;i<items.length;i++){
-   it=items[i];
-   cur=fresh.students.filter(function(x){return x.fid===it.s.fid;})[0]; nm=(cur&&cur.name)||it.s.name||it.s.id;
-   if(!cur||!cur.password){bad.push(nm+': 명단에 학생 비밀번호가 없습니다. 먼저 학생 현황에서 비밀번호를 연결하십시오.');continue;}
-   if(!it.clear&&it.chk==='bad'){bad.push(nm+': 말하기 서버가 이 아이디와 비밀번호를 받지 않았습니다(말하기 아이디 '+it.id+').');continue;}
-   try{b=await H().decryptBundle(await fetchFile(it.s.fid),cur.password,it.s.fid);}catch(e){bad.push(nm+': 학생 파일을 열지 못했습니다.');continue;}
-   if(it.clear) delete b.sprechen; else b.sprechen={id:it.id,pw:it.pw};
-   changes.push({path:'data/'+it.s.fid+'.bin',bytes:await encryptBundle(withPad(b),cur.password,it.s.fid)});
-   sums[it.s.fid]=summarize(b);
-   done.push(b.name+(it.clear?'(연결 해제)':''));
-   if(!it.clear&&it.chk==='net') unver.push(b.name);
-  }
-  if(changes.length){
-   await commitChanges(changes,'데이터 갱신');
-   Object.keys(sums).forEach(function(f){st[f]={state:'ok',sum:sums[f]};delete spOpen[f];});
-  }
-  var msg=done.length?('말하기 계정을 저장했습니다: '+done.join(', ')+'. 반영까지 1~2분 걸립니다. 학생이 학습 포탈에 다시 로그인하면 적용됩니다.'):'저장한 학생이 없습니다.';
-  if(unver.length) msg+=' 말하기 서버에 연결하지 못해 확인 없이 저장한 학생: '+unver.join(', ')+'.';
-  say(msg,!done.length);
-  if(bad.length) $('#aout').innerHTML='<div class="cred warnbox"><b>저장하지 못한 학생</b>'+bad.map(function(x){return '<div>'+esc(x)+'</div>';}).join('')+'</div>';
- }catch(e){say(msgOf(e),true);bad.push('');}
- finally{busy(false);renderTable();}
- return bad.length;
-}
-function bulkSprechen(){
- if(working) return;
- var lines=$('#spb').value.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean), items=[], errs=[], seen={};
- lines.forEach(function(l,n){
-  var f=l.split(/\t|,/).map(function(x){return x.trim();});
-  var hid=f[0], sid=f.length>=3?f[1]:f[0], pw=f.length>=3?f.slice(2).join(','):(f[1]||'');
-  if(!hid||!sid||!pw){errs.push((n+1)+'번째 줄의 형식이 맞지 않습니다.');return;}
-  /* 아이디가 같은 학생을 먼저 찾고, 없으면 이름이 같은 학생이 한 명일 때만 그 학생으로 봅니다 */
-  var nh=normId(hid), byId=A.students.filter(function(x){return normId(x.id)===nh;}), byName=A.students.filter(function(x){return normId(x.name)===nh;});
-  var s=byId[0]||(byName.length===1?byName[0]:null);
-  if(!s){errs.push((n+1)+'번째 줄: '+(byName.length>1?'이름이 같은 학생이 여러 명입니다. 학생 아이디로 적으십시오('+hid+').':'명단에 없는 학생입니다('+hid+').'));return;}
-  if(seen[s.fid]){errs.push((n+1)+'번째 줄: 같은 학생이 두 번 적혀 있습니다('+hid+').');return;}
-  seen[s.fid]=1; items.push({s:s,id:sid,pw:pw});
- });
- if(errs.length){say(errs.join(' '),true);return;}
- if(!items.length){say('연결할 학생을 한 줄에 한 명씩 적으십시오.',true);return;}
- setSprechen(items).then(function(n){if(n===0&&$('#spb')) $('#spb').value='';});
 }
 async function viewStudent(s){
  if(working||!s.password) return;
