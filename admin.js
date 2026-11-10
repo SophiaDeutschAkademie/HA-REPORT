@@ -200,7 +200,7 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.aform input[type=text],.aform input[type=password],.aform input[type=number],.aform select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}'
 +'.aform .chk{display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px;padding-bottom:9px}'
 +'.asec h2{margin-bottom:2px}.asec h3{margin:18px 0 2px}'
-+'.cred{border:1.5px solid var(--acc);background:#f1f6f3;border-radius:12px;padding:12px 14px;margin-top:10px}'
++'.cred{border:1.5px solid var(--acc);background:#f1f3f8;border-radius:12px;padding:12px 14px;margin-top:10px}'
 +'.cred div{margin:2px 0}'
 +'.lnk.spf{flex-wrap:wrap}.lnk.spf input{width:128px}'
 +'.aform textarea{width:100%;min-height:96px;resize:vertical;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;line-height:1.6;background:#fff;color:var(--ink)}'

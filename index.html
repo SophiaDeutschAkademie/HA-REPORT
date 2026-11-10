@@ -7,7 +7,7 @@
 <title>Sophia Deutsch Akademie 학습 포탈</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#262220;--mute:#6b665f;--line:#e3e0d8;--acc:#456b5a;--accbg:#dde8e1;--hero:#223029;--good:#3a7d5c;--bad:#a84840;--warn:#9e7a2a}
+:root{--bg:#f6f5f2;--card:#fff;--ink:#262220;--mute:#6b665f;--line:#e3e0d8;--acc:#2E3A55;--accbg:#e1e5ee;--hero:#2E3A55;--good:#3a7d5c;--bad:#a84840;--warn:#9e7a2a}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:15px;line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
@@ -36,13 +36,13 @@ h3{font-size:15px;margin:0 0 4px}
 .lvsel h2{margin-bottom:10px}
 @media (max-width:420px){.lvbtn{padding:14px 10px}.lvbtn b{font-size:22px}.lvbtn span{font-size:12.5px;line-height:1.5}}
 .lvbtn{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:18px 16px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
-.lvbtn:hover,.lvbtn:focus-visible{border-color:var(--acc);background:#f1f6f3;outline:none}
+.lvbtn:hover,.lvbtn:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}
 .lvbtn b{display:block;font-size:26px;line-height:1.2;letter-spacing:.01em;margin-bottom:4px}
 .lvbtn span{display:block;color:var(--mute);font-size:13.5px;line-height:1.5}
 .back{border:none;background:none;color:var(--acc);font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:8px;font-size:14px}
 .names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .namebtn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px 12px;font-size:16px;font-weight:600;cursor:pointer;text-align:center}
-.namebtn:hover,.namebtn:focus-visible{border-color:var(--acc);background:#f1f6f3;outline:none}
+.namebtn:hover,.namebtn:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}
 .empty{color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:18px;text-align:center}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin:14px 0}
 .pw label{display:block;font-weight:600;margin-bottom:6px}
@@ -52,7 +52,7 @@ h3{font-size:15px;margin:0 0 4px}
 .btn{border:1.5px solid var(--acc);background:#fff;color:var(--acc);border-radius:10px;padding:9px 14px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
 .btn:hover{background:var(--accbg)}
 .btn.main{background:var(--acc);color:#fff}
-.btn.main:hover{background:#3a5c4d}
+.btn.main:hover{background:#3B4863}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .msg{min-height:1.6em;margin-top:8px;font-size:14px;color:var(--mute)}
 .msg.err{color:var(--bad)}
@@ -89,7 +89,7 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .sumtxt p{margin:2px 0}
 .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
 .tab{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-size:14px;font-weight:600;cursor:pointer;text-align:left}
-.tab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2f5a47}
+.tab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2E3A55}
 #tabs,#gtabs{flex-direction:column;flex-wrap:nowrap;gap:6px}
 #tabs .tab,#gtabs .tab{display:grid;grid-template-columns:3.2em 1fr;align-items:baseline;column-gap:10px;width:100%;padding:9px 12px}
 .tab .tn{white-space:nowrap}
@@ -106,15 +106,15 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
 .mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 14px}
 .mtab{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 10px;font-weight:700;font-size:16px;cursor:pointer;text-align:center}
 .mtab:hover,.mtab:focus-visible{border-color:var(--acc);outline:none}
-.mtab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2f5a47}
+.mtab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2E3A55}
 @media (max-width:420px){.mtabs{gap:6px}.mtab{font-size:14px;padding:12px 4px;overflow-wrap:normal}}
 @media (max-width:340px){.mtab{font-size:12.5px}}
 
 /* 학습 포탈 첫 화면: 나의 학습 기록 보기 / 학습 진행하기 */
 .hub{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:0 0 14px}
 .hubbtn{display:flex;flex-direction:column;align-items:flex-start;border:1.5px solid var(--line);background:var(--card);border-radius:16px;padding:22px 20px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
-.hubbtn:hover,.hubbtn:focus-visible{border-color:var(--acc);background:#f1f6f3;outline:none}
-.hubbtn .ic{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:12px;background:var(--accbg);color:#2f5a47;margin-bottom:18px;flex:none}
+.hubbtn:hover,.hubbtn:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}
+.hubbtn .ic{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:12px;background:var(--accbg);color:#2E3A55;margin-bottom:18px;flex:none}
 .hubbtn .ic svg{width:24px;height:24px}
 .hubbtn .tx{display:block;min-width:0}
 .hubbtn b{display:block;font-size:20px;line-height:1.35;margin-bottom:4px}
@@ -123,13 +123,24 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
 /* 학습 진행하기 목록 */
 .golist{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
 .golist a,.golist .off{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:72px;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:13px 16px;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
-.golist a:hover,.golist a:focus-visible{border-color:var(--acc);background:#f1f6f3;outline:none}
+.golist a:hover,.golist a:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}
 .golist b{display:block;font-size:17px;line-height:1.35;letter-spacing:.01em}
 .golist .ds{display:block;color:var(--mute);font-size:13.5px;line-height:1.5}
 .golist .gar{display:flex;color:var(--acc)}
 .golist .gar svg{width:20px;height:20px}
 .golist .off{border-style:dashed;background:transparent;color:var(--mute)}
-.golist .tag{display:inline-block;margin-left:8px;border-radius:999px;background:var(--accbg);color:#2f5a47;font-size:11.5px;font-weight:700;line-height:1.6;padding:0 8px;vertical-align:2px;letter-spacing:0}
+.golist .tag{display:inline-block;margin-left:8px;border-radius:999px;background:var(--accbg);color:#2E3A55;font-size:11.5px;font-weight:700;line-height:1.6;padding:0 8px;vertical-align:2px;letter-spacing:0}
+.golist li.big{grid-column:1/-1}
+.golist li.big a{min-height:96px;padding:18px 20px}
+.golist li.big b{font-size:21px}
+.golist li.big .ds{font-size:14.5px}
+/* 첫 화면의 격언 */
+.quote{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 14px}
+.quote .ey{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--mute);margin:0 0 10px}
+.quote .de{margin:0;font-size:19px;font-weight:600;line-height:1.6;color:var(--ink);word-break:normal;overflow-wrap:break-word}
+.quote .ko{margin:8px 0 0;font-size:15px;line-height:1.65;color:var(--mute)}
+.quote .src{margin:12px 0 0;font-size:12.5px;color:var(--mute)}
+@media (max-width:600px){.quote{padding:16px 18px}.quote .de{font-size:16.5px}.quote .ko{font-size:13.5px}.golist li.big a{min-height:84px;padding:15px 16px}.golist li.big b{font-size:19px}.golist li.big .ds{font-size:13px}}
 .lg-note{width:100%;max-width:380px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-size:13.5px;line-height:1.6}
 [hidden]{display:none!important}
 .login{min-height:calc(100vh - 90px);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 0 24px}
@@ -193,7 +204,7 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
 </div></header>
 <main class="wrap" id="app"></main>
 
-<script src="achieve.js?v=2"></script>
+<script src="achieve.js?v=3"></script>
 <script>
 (function(){
 'use strict';
@@ -231,6 +242,103 @@ function $(s,r){return (r||document).querySelector(s);}
    - sid: 학생 파일 id, k: 학생 파일을 여는 키(비밀번호에서 계산한 값. 포탈 비밀번호 자체는 저장하지 않습니다), name · level: 화면 표시용
    - sp: 말하기 연습(SODA Sprechen) 계정. 학생 파일의 sprechen 값이 먼저이고, 없으면 포탈과 같은 아이디 · 비밀번호로 말하기 서버에 로그인이 될 때 그 값입니다
    - exp: 유효 시각(로그인 후 12시간). 로그아웃하면 바로 지웁니다. 관리자 로그인은 저장하지 않습니다. */
+/* 로그인 뒤 첫 화면의 격언 80개: [독일어, 한국어, 출처]. 출처가 확실한 인용만 저자와 작품을 적고, 나머지는 속담(Sprichwort)입니다 */
+var QUOTES=[
+ ['Wer fremde Sprachen nicht kennt, weiß nichts von seiner eigenen.','외국어를 모르는 사람은 자기 언어에 대해서도 아무것도 모릅니다.','Johann Wolfgang von Goethe, Maximen und Reflexionen'],
+ ['Die Grenzen meiner Sprache bedeuten die Grenzen meiner Welt.','내 언어의 한계는 내 세계의 한계를 뜻합니다.','Ludwig Wittgenstein, Tractatus logico-philosophicus'],
+ ['Es ist nicht genug, zu wissen, man muss auch anwenden; es ist nicht genug, zu wollen, man muss auch tun.','아는 것으로는 부족하고 적용해야 합니다. 원하는 것으로는 부족하고 행동해야 합니다.','Johann Wolfgang von Goethe, Wilhelm Meisters Wanderjahre'],
+ ['Was man nicht versteht, besitzt man nicht.','이해하지 못한 것은 내 것이 아닙니다.','Johann Wolfgang von Goethe, Maximen und Reflexionen'],
+ ['Wer das erste Knopfloch verfehlt, kommt mit dem Zuknöpfen nicht zu Rande.','첫 단춧구멍을 잘못 끼우면 단추를 끝까지 채울 수 없습니다.','Johann Wolfgang von Goethe, Maximen und Reflexionen'],
+ ['Es irrt der Mensch, solang er strebt.','사람은 노력하는 동안 실수를 합니다.','Johann Wolfgang von Goethe, Faust I'],
+ ['Gebraucht der Zeit, sie geht so schnell von hinnen, doch Ordnung lehrt euch Zeit gewinnen.','시간을 잘 쓰십시오. 시간은 빨리 지나가지만, 순서를 지키면 시간을 얻습니다.','Johann Wolfgang von Goethe, Faust I'],
+ ['Die Sprache ist das bildende Organ des Gedankens.','언어는 생각을 만드는 기관입니다.','Wilhelm von Humboldt'],
+ ['Es gibt nichts Gutes, außer: Man tut es.','좋은 일은 실제로 할 때에만 있습니다.','Erich Kästner'],
+ ['Wer nichts weiß, muss alles glauben.','아무것도 모르는 사람은 모든 것을 믿을 수밖에 없습니다.','Marie von Ebner-Eschenbach, Aphorismen'],
+ ['Habe Mut, dich deines eigenen Verstandes zu bedienen!','자기 이성을 사용할 용기를 가지십시오.','Immanuel Kant, Was ist Aufklärung?'],
+ ['Und jedem Anfang wohnt ein Zauber inne.','모든 시작에는 마법이 깃들어 있습니다.','Hermann Hesse, Stufen'],
+ ['Habe Geduld gegen alles Ungelöste in deinem Herzen.','마음속에 풀리지 않은 모든 것에 인내심을 가지십시오.','Rainer Maria Rilke, Briefe an einen jungen Dichter'],
+ ['Früh übt sich, was ein Meister werden will.','대가가 되려는 사람은 일찍부터 연습합니다.','Friedrich Schiller, Wilhelm Tell'],
+ ['Der kluge Mann baut vor.','현명한 사람은 미리 준비합니다.','Friedrich Schiller, Wilhelm Tell'],
+ ['Also lautet ein Beschluss, dass der Mensch was lernen muss.','사람은 무언가를 배워야 한다고 정해져 있습니다.','Wilhelm Busch, Max und Moritz'],
+ ['Irren ist menschlich.','실수하는 것은 사람다운 일입니다.','Sprichwort'],
+ ['Übung macht den Meister.','연습이 대가를 만듭니다.','Sprichwort'],
+ ['Aller Anfang ist schwer.','모든 시작은 어렵습니다.','Sprichwort'],
+ ['Steter Tropfen höhlt den Stein.','끊임없이 떨어지는 물방울이 돌을 뚫습니다.','Sprichwort'],
+ ['Wer rastet, der rostet.','쉬는 사람은 녹이 습니다.','Sprichwort'],
+ ['Rom ist auch nicht an einem Tag erbaut worden.','로마도 하루에 세워지지 않았습니다.','Sprichwort'],
+ ['Ohne Fleiß kein Preis.','노력 없이는 보상도 없습니다.','Sprichwort'],
+ ['Kommt Zeit, kommt Rat.','시간이 지나면 방법이 생깁니다.','Sprichwort'],
+ ['Probieren geht über Studieren.','직접 해 보는 것이 책으로 배우는 것보다 낫습니다.','Sprichwort'],
+ ['Man lernt nie aus.','배움에는 끝이 없습니다.','Sprichwort'],
+ ['Wo ein Wille ist, ist auch ein Weg.','뜻이 있는 곳에 길이 있습니다.','Sprichwort'],
+ ['Aus Fehlern wird man klug.','실수를 통해 현명해집니다.','Sprichwort'],
+ ['Gut Ding will Weile haben.','좋은 것에는 시간이 걸립니다.','Sprichwort'],
+ ['Morgenstund hat Gold im Mund.','아침 시간은 입에 금을 물고 있습니다.','Sprichwort'],
+ ['Eile mit Weile.','서두르되 천천히 하십시오.','Sprichwort'],
+ ['Wer A sagt, muss auch B sagen.','A를 말한 사람은 B도 말해야 합니다. 시작한 일은 끝까지 해야 합니다.','Sprichwort'],
+ ['Viele Wege führen nach Rom.','로마로 가는 길은 많습니다.','Sprichwort'],
+ ['Geduld bringt Rosen.','인내가 장미를 가져옵니다.','Sprichwort'],
+ ['Wissen ist Macht.','아는 것이 힘입니다.','Sprichwort'],
+ ['Ende gut, alles gut.','끝이 좋으면 다 좋습니다.','Sprichwort'],
+ ['Der Appetit kommt beim Essen.','식욕은 먹으면서 생깁니다. 일단 시작하면 의욕이 따라옵니다.','Sprichwort'],
+ ['Wer nicht wagt, der nicht gewinnt.','도전하지 않는 사람은 얻지 못합니다.','Sprichwort'],
+ ['Es ist noch kein Meister vom Himmel gefallen.','하늘에서 떨어진 대가는 아직 없습니다.','Sprichwort'],
+ ['Was du heute kannst besorgen, das verschiebe nicht auf morgen.','오늘 할 수 있는 일을 내일로 미루지 마십시오.','Sprichwort'],
+ ['Kleinvieh macht auch Mist.','작은 것도 모이면 쌓입니다.','Sprichwort'],
+ ['Lieber spät als nie.','늦더라도 하지 않는 것보다 낫습니다.','Sprichwort'],
+ ['Hinfallen ist keine Schande, aber liegen bleiben.','넘어지는 것은 부끄러운 일이 아닙니다. 그대로 누워 있는 것이 부끄러운 일입니다.','Sprichwort'],
+ ['Der Weg ist das Ziel.','과정 자체가 목표입니다.','Sprichwort'],
+ ['Auch eine Reise von tausend Meilen beginnt mit dem ersten Schritt.','천 리 길도 첫걸음부터 시작합니다.','Sprichwort aus China'],
+ ['Wiederholung ist die Mutter des Lernens.','반복은 배움의 어머니입니다.','Sprichwort'],
+ ['Was lange währt, wird endlich gut.','오래 걸린 일은 결국 좋게 끝납니다.','Sprichwort'],
+ ['Doppelt genäht hält besser.','두 번 꿰맨 것이 더 튼튼합니다.','Sprichwort'],
+ ['Einmal ist keinmal.','한 번은 하지 않은 것과 같습니다.','Sprichwort'],
+ ['Erst die Arbeit, dann das Vergnügen.','먼저 일하고 나중에 즐기십시오.','Sprichwort'],
+ ['Man muss das Eisen schmieden, solange es heiß ist.','쇠는 뜨거울 때 두드려야 합니다.','Sprichwort'],
+ ['Lerne was, so kannst du was.','배우면 할 수 있게 됩니다.','Sprichwort'],
+ ['Wer sucht, der findet.','찾는 사람이 발견합니다.','Sprichwort'],
+ ['Frisch begonnen ist halb gewonnen.','힘차게 시작하면 반은 이긴 것입니다.','Sprichwort'],
+ ['Lernen ist wie Rudern gegen den Strom: Hört man damit auf, treibt man zurück.','배움은 물살을 거슬러 노를 젓는 것과 같습니다. 멈추면 뒤로 밀려납니다.','Sprichwort'],
+ ['Andere Länder, andere Sitten.','나라가 다르면 풍습도 다릅니다.','Sprichwort'],
+ ['Wer schreibt, der bleibt.','쓰는 사람의 것이 남습니다.','Sprichwort'],
+ ['Lesen bildet.','읽기가 사람을 가르칩니다.','Sprichwort'],
+ ['Nach Regen kommt Sonnenschein.','비가 온 뒤에는 해가 뜹니다.','Sprichwort'],
+ ['Wer langsam geht, kommt auch ans Ziel.','천천히 가는 사람도 목표에 닿습니다.','Sprichwort'],
+ ['Ein Buch ist wie ein Garten, den man in der Tasche trägt.','책은 주머니에 넣고 다니는 정원과 같습니다.','Sprichwort aus Arabien'],
+ ['Gesagt, getan.','말한 대로 바로 했습니다.','Redensart'],
+ ['Der frühe Vogel fängt den Wurm.','일찍 일어나는 새가 벌레를 잡습니다.','Sprichwort'],
+ ['Wer fragt, ist ein Narr für eine Minute; wer nicht fragt, ist ein Narr sein Leben lang.','묻는 사람은 잠깐 바보가 되지만, 묻지 않는 사람은 평생 바보로 남습니다.','Sprichwort aus China'],
+ ['Wer nicht fragt, bleibt dumm.','묻지 않으면 모르는 채로 남습니다.','Redensart'],
+ ['Es gibt keine dummen Fragen.','어리석은 질문은 없습니다.','Redensart'],
+ ['Nicht für die Schule, sondern für das Leben lernen wir.','우리는 학교가 아니라 삶을 위해 배웁니다.','nach Seneca'],
+ ['Fleiß ist des Glückes Vater.','부지런함이 행운의 아버지입니다.','Sprichwort'],
+ ['Mut tut gut.','용기는 힘이 됩니다.','Redensart'],
+ ['Kleine Schritte führen auch zum Ziel.','작은 걸음으로도 목표에 닿습니다.','Redensart'],
+ ['Jeder Tag ist ein neuer Anfang.','하루하루가 새로운 시작입니다.','Redensart'],
+ ['Fehler sind dazu da, dass man aus ihnen lernt.','실수는 배우라고 있는 것입니다.','Redensart'],
+ ['Sprache ist der Schlüssel zur Welt.','언어는 세상으로 가는 열쇠입니다.','Redensart'],
+ ['Es wächst der Mensch mit seinen größern Zwecken.','사람은 더 큰 목표와 함께 자랍니다.','Friedrich Schiller, Wallenstein (Prolog)'],
+ ['Wer will, der kann.','하려는 사람은 할 수 있습니다.','Sprichwort'],
+ ['Übung bringt Sicherheit.','연습하면 자신감이 생깁니다.','Redensart'],
+ ['Am Ball bleiben!','손을 놓지 말고 계속하십시오.','Redensart'],
+ ['Dranbleiben lohnt sich.','꾸준히 하면 보람이 있습니다.','Redensart'],
+ ['Wer viel liest, weiß viel.','많이 읽는 사람이 많이 압니다.','Sprichwort'],
+ ['Viele Hände machen bald ein Ende.','여러 손이 모이면 일이 금방 끝납니다. 함께 공부하면 빨리 갑니다.','Sprichwort']
+];
+/* 로그인할 때마다 다음 격언을 보여 줍니다. 80개를 섞어 한 바퀴를 다 보여 준 뒤에 다시 섞습니다(같은 기기 기준) */
+function nextQuote(){
+ var K='soda-portal:quotes', d=null, last=-1, i, j, t;
+ try{d=JSON.parse(localStorage.getItem(K)||'null');}catch(e){d=null;}
+ if(d&&typeof d.last==='number') last=d.last;
+ var deck=(d&&Array.isArray(d.deck))?d.deck.filter(function(x){return typeof x==='number'&&x>=0&&x<QUOTES.length;}):[];
+ if(!deck.length){
+  for(i=0;i<QUOTES.length;i++) if(i!==last) deck.push(i);
+  for(i=deck.length-1;i>0;i--){j=Math.floor(Math.random()*(i+1));t=deck[i];deck[i]=deck[j];deck[j]=t;}
+ }
+ var q=deck.pop();
+ try{localStorage.setItem(K,JSON.stringify({deck:deck,last:q}));}catch(e){}
+ return q;
+}
 var SKEY='soda-portal:session', STTL=12*3600*1000, SP_API='https://sprechen.windschlaf.workers.dev';
 function b64e(u8){var s='',i;for(i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s);}
 function b64d(t){var b=atob(t),u=new Uint8Array(b.length),i;for(i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
@@ -250,7 +358,7 @@ function saveSess(fresh){
  if(!session||!session.data||!session.kb) return;
  var d=session.data, prev=readSess(), keep=!fresh&&!!prev&&prev.sid===session.sid, sp=spOf(d), now=Date.now();
  if(!sp&&keep&&prev.sp) sp=prev.sp;
- writeSess({v:1,sid:session.sid,id:session.uid||d.name,name:d.name,level:d.level,k:b64e(session.kb),sp:sp,at:keep?prev.at:now,exp:keep?prev.exp:now+STTL});
+ writeSess({v:1,sid:session.sid,id:session.uid||d.name,name:d.name,level:d.level,k:b64e(session.kb),sp:sp,q:(keep&&typeof prev.q==='number')?prev.q:nextQuote(),at:keep?prev.at:now,exp:keep?prev.exp:now+STTL});
 }
 /* 학생 파일에 말하기 계정이 없으면, 포탈과 같은 아이디 · 비밀번호로 말하기 서버에 로그인이 되는지 한 번 확인합니다.
    되면 그 계정을 이 로그인에 연결합니다. 안 되면 같은 기기에서 6시간 동안 다시 확인하지 않습니다. */
@@ -505,9 +613,13 @@ function restore(){
  return true;
 }
 function me(){var d=session&&session.data, s=(session&&session.stub)||{}; return {name:(d&&d.name)||s.name||'',level:(d&&d.level)||s.level||''};}
-function headHtml(){
+function headHtml(home){
  var m=me();
- return '<div class="vhead"><div class="row"><div><div class="who">'+esc(m.name)+'</div>'+(m.level&&m.level!=='-'?'<div class="lv">현재 레벨 '+esc(m.level)+'</div>':'')+'</div><div><button class="btn" id="out">로그아웃</button></div></div></div>';
+ return '<div class="vhead"><div class="row"><div><div class="who">'+esc(m.name)+'</div>'+(m.level&&m.level!=='-'?'<div class="lv">현재 레벨 '+esc(m.level)+'</div>':'')+'</div><div>'+(home?'<button class="btn" id="hm">처음 화면</button> ':'')+'<button class="btn" id="out">로그아웃</button></div></div></div>';
+}
+function quoteHtml(){
+ var s=readSess(), i=(s&&typeof s.q==='number'&&s.q>=0&&s.q<QUOTES.length)?s.q:Math.floor(Math.random()*QUOTES.length), q=QUOTES[i];
+ return '<section class="quote" aria-label="독일어 격언"><p class="ey">ZITAT · 격언</p><p class="de" lang="de">'+esc(q[0])+'</p><p class="ko">'+esc(q[1])+'</p>'+(q[2]?'<p class="src" lang="de">— '+esc(q[2])+'</p>':'')+'</section>';
 }
 var IC_REC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16h16"/><path d="M8 15l3.5-4 3 2.5L19 8"/></svg>';
 var IC_GO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.4 5.2 8.2 4.5 5.5 4.5H3v13h2.5c2.7 0 4.9.7 6.5 2 1.6-1.3 3.8-2 6.5-2H21v-13h-2.5c-2.7 0-4.9.7-6.5 2z"/><path d="M12 6.5v13"/></svg>';
@@ -516,9 +628,10 @@ function viewHub(){
  $('#top').hidden=false; window.onresize=null;
  app.innerHTML=headHtml()
   +'<div class="hub">'
-  +'<button type="button" class="hubbtn" id="hrec"><span class="ic">'+IC_REC+'</span><span class="tx"><b>나의 학습 기록 보기</b><span class="ds">과제 첨삭 · VOKA · 시험 준비 · 성취 평가</span></span></button>'
   +'<button type="button" class="hubbtn" id="hgo"><span class="ic">'+IC_GO+'</span><span class="tx"><b>학습 진행하기</b><span class="ds">교재, 과제, 단어장으로 이동합니다</span></span></button>'
+  +'<button type="button" class="hubbtn" id="hrec"><span class="ic">'+IC_REC+'</span><span class="tx"><b>나의 학습 기록 보기</b><span class="ds">과제 첨삭 · VOKA · 시험 준비 · 성취 평가</span></span></button>'
   +'</div>'
+  +quoteHtml()
   +'<p class="foot">로그인은 이 기기에서 12시간 동안 유지됩니다. 여러 사람이 쓰는 기기에서는 다 쓴 뒤 로그아웃을 누르십시오.</p>';
  $('#out').addEventListener('click',leave);
  $('#hrec').addEventListener('click',function(){route('records');});
@@ -527,8 +640,9 @@ function viewHub(){
 }
 /* 학습 진행하기: 학습 앱 목록. 주소는 같은 사이트(github.io) 안의 경로입니다. probe가 있는 항목은 그 주소가 실제로 열릴 때만 연결합니다 */
 var LEARN=[
- {k:'lw',t:'SODA-LEHRWERK',d:'문법 · 읽기 · 듣기 · 쓰기 · 말하기 훈련 · 모의고사',u:'/SODA-Lehrwerk/#inhalt'},
- {k:'vk',t:'VOKALAB',d:'독일어 단어장 A1–C1',u:'/SODA-Lehrwerk/vokalab/'},
+ {k:'lw',t:'SODA-LEHRWERK',d:'문법 · 읽기 · 듣기 · 쓰기 · 말하기 훈련 · 모의고사',u:'/SODA-Lehrwerk/#inhalt',big:1},
+ {k:'vk',t:'VOKALAB',d:'독일어 단어장 A1–C1',u:'/SODA-Lehrwerk/vokalab/',big:1},
+ {k:'gr',t:'SODA GRAMMATIK',d:'문법 16 Lektion · 연습문제 · 복습 · 과제',u:'/SODA-GRAMMATIK-KURS/#toc',lv:'GRAMMATIK'},
  {k:'a2',t:'SODA A2',d:'A2 과정 챕터와 과제',u:'/SODA-A2/#list',lv:'A2'},
  {k:'b1',t:'SODA B1',d:'B1 과정 챕터와 과제',u:'/SODA-B1/#list',lv:'B1'},
  {k:'b2',t:'SODA B2',d:'B2 과정 챕터와 과제',u:'/SODA-B2/#list',lv:'B2'},
@@ -540,10 +654,10 @@ function learnItem(x,lv){
 function viewLearn(){
  $('#top').hidden=false; window.onresize=null;
  var lv=me().level;
- var h=headHtml()+'<button type="button" class="back" id="hm">← 처음 화면</button>'
+ var h=headHtml(true)
   +'<section class="card"><h2>학습 진행하기</h2><p class="sub" style="margin:0">학습할 자료를 고르십시오.</p><ul class="golist">';
  LEARN.forEach(function(x){
-  h+='<li id="go-'+x.k+'">'+((x.probe&&probed[x.k]!==true)?'<div class="off"><span><b>'+esc(x.t)+'</b><span class="ds">준비 중입니다</span></span></div>':learnItem(x,lv))+'</li>';
+  h+='<li id="go-'+x.k+'"'+(x.big?' class="big"':'')+'>'+((x.probe&&probed[x.k]!==true)?'<div class="off"><span><b>'+esc(x.t)+'</b><span class="ds">준비 중입니다</span></span></div>':learnItem(x,lv))+'</li>';
  });
  app.innerHTML=h+'</ul></section>';
  $('#out').addEventListener('click',leave);
@@ -578,7 +692,7 @@ async function openRecords(){
    return;
   }
   if(hashView()!=='records') return;
-  app.innerHTML=headHtml()+'<button type="button" class="back" id="hm">← 처음 화면</button><div class="empty">학습 기록을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도하십시오.<br><button type="button" class="btn" id="rt" style="margin-top:12px">다시 시도</button></div>';
+  app.innerHTML=headHtml(true)+'<div class="empty">학습 기록을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도하십시오.<br><button type="button" class="btn" id="rt" style="margin-top:12px">다시 시도</button></div>';
   $('#out').addEventListener('click',leave);
   $('#hm').addEventListener('click',function(){route('hub');});
   $('#rt').addEventListener('click',openRecords);
@@ -662,14 +776,14 @@ function grChart(st,wid){
  function Y(v){return T+ph*(1-(v-lo)/(hi-lo));}
  var g='', v, k;
  for(v=lo;v<=hi;v+=step) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#e3e0d8"/><text x="'+(L-8)+'" y="'+(Y(v)+4)+'" font-size="12" text-anchor="end" fill="#6b665f">'+v+'</text>';
- st.forEach(function(x,i){g+='<text x="'+X(i)+'" y="'+(H-B+22)+'" font-size="'+(many&&W<520?11:13)+'" font-weight="'+(i===n-1?700:500)+'" text-anchor="middle" fill="'+(i===n-1?'#2f5a47':'#262220')+'">'+x.n+(many?'':'회')+'</text>';});
+ st.forEach(function(x,i){g+='<text x="'+X(i)+'" y="'+(H-B+22)+'" font-size="'+(many&&W<520?11:13)+'" font-weight="'+(i===n-1?700:500)+'" text-anchor="middle" fill="'+(i===n-1?'#2E3A55':'#262220')+'">'+x.n+(many?'':'회')+'</text>';});
  if(many) g+='<text x="'+(W-R)+'" y="'+(H-6)+'" font-size="11" text-anchor="end" fill="#6b665f">회차</text>';
  var ma=[]; for(k=2;k<n;k++) ma.push([X(k),Y(grAvg([vals[k-2],vals[k-1],vals[k]]))]);
  if(ma.length>1) g+='<polyline points="'+ma.map(function(q){return q[0]+','+q[1];}).join(' ')+'" fill="none" stroke="#a39d8f" stroke-width="2.2" stroke-dasharray="6 5" stroke-linejoin="round" stroke-linecap="round"/>';
- if(n>1) g+='<polyline points="'+st.map(function(x,i){return X(i)+','+Y(x.rate);}).join(' ')+'" fill="none" stroke="#456b5a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+ if(n>1) g+='<polyline points="'+st.map(function(x,i){return X(i)+','+Y(x.rate);}).join(' ')+'" fill="none" stroke="#2E3A55" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
  st.forEach(function(x,i){
   var last=i===n-1;
-  g+='<g class="pt" data-i="'+x.i+'"><circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="16" fill="transparent"/>'+(last?'<circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="9" fill="none" stroke="#456b5a" stroke-width="1.6" opacity=".45"/>':'')+'<circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="5.5" fill="#456b5a" stroke="#fff" stroke-width="1.5"/><text x="'+X(i)+'" y="'+(Y(x.rate)-12)+'" font-size="'+fs+'" font-weight="700" text-anchor="middle" fill="#262220">'+x.rate+'</text><title>'+x.n+'회 정답률 '+x.rate+'%</title></g>';
+  g+='<g class="pt" data-i="'+x.i+'"><circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="16" fill="transparent"/>'+(last?'<circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="9" fill="none" stroke="#2E3A55" stroke-width="1.6" opacity=".45"/>':'')+'<circle cx="'+X(i)+'" cy="'+Y(x.rate)+'" r="5.5" fill="#2E3A55" stroke="#fff" stroke-width="1.5"/><text x="'+X(i)+'" y="'+(Y(x.rate)-12)+'" font-size="'+fs+'" font-weight="700" text-anchor="middle" fill="#262220">'+x.rate+'</text><title>'+x.n+'회 정답률 '+x.rate+'%</title></g>';
  });
  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="회차별 정답률 그래프">'+g+'</svg>';
 }
@@ -687,7 +801,7 @@ function grSummary(st){
 function grGraphHtml(G){
  if(grStats(G).length<2) return '';
  return '<section class="card vgraph" style="padding:16px"><h2 style="margin:0 0 4px">실력 향상도</h2><div class="vsum" id="ggs"></div><div class="chart-wrap" id="ggw"></div>'
-  +'<div class="vlg"><span><i style="background:#456b5a"></i>회차별 정답률</span><span><i style="background:#a39d8f"></i>최근 3회 평균(점선)</span></div>'
+  +'<div class="vlg"><span><i style="background:#2E3A55"></i>회차별 정답률</span><span><i style="background:#a39d8f"></i>최근 3회 평균(점선)</span></div>'
   +'<p class="note">단원마다 문항 수와 내용이 달라 한 회차의 점수보다 전체 흐름을 봅니다. 점을 누르면 그 회차 리포트로 이동합니다.</p></section>';
 }
 function grDraw(G){
@@ -824,7 +938,7 @@ function renderTrainingBody(){
 /* VOKA 학습 성과 그래프: 각 주차 리포트에 적힌 숫자를 읽어서 그립니다 */
 var VMET=[{k:'score',name:'주간 점수',u:'점'},{k:'learn',name:'학습 완료 단어',u:'%'},{k:'days',name:'공부한 날',u:'일'}];
 var VNOTE={score:'각 주차 리포트에 적힌 점수예요.',learn:'학습을 끝낸 단어가 전체 단어에서 차지하는 비율이에요. 각 주차 리포트에 적힌 숫자예요.',days:'한 주에 공부한 날 수예요. 각 주차 리포트에 적힌 숫자예요.'};
-var GRC={S:'#2f5a47',A:'#6f9a85',B:'#a39d8f'};
+var GRC={S:'#2E3A55',A:'#7482a0',B:'#a39d8f'};
 var vm={cur:'score',sel:0,st:[]};
 function vokaStats(r){
  var o={n:r.n,score:null,grade:'',learn:null,days:null};
@@ -852,14 +966,14 @@ function vokaChart(){
  function Y(v){return T+ph*(1-(v-lo)/(hi-lo));}
  var g='', v;
  for(v=lo;v<=hi;v+=step) g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#e3e0d8"/><text x="'+(L-8)+'" y="'+(Y(v)+4)+'" font-size="12" text-anchor="end" fill="#6b665f">'+v+'</text>';
- st.forEach(function(x,i){g+='<text x="'+X(i)+'" y="'+(H-B+22)+'" font-size="13" font-weight="'+(i===vm.sel?700:500)+'" text-anchor="middle" fill="'+(i===vm.sel?'#2f5a47':'#262220')+'">'+x.n+'주</text>';});
+ st.forEach(function(x,i){g+='<text x="'+X(i)+'" y="'+(H-B+22)+'" font-size="13" font-weight="'+(i===vm.sel?700:500)+'" text-anchor="middle" fill="'+(i===vm.sel?'#2E3A55':'#262220')+'">'+x.n+'주</text>';});
  var segs=[],cur=[];
  vals.forEach(function(val,i){if(val==null){if(cur.length)segs.push(cur);cur=[];}else cur.push(X(i)+','+Y(val));});
  if(cur.length)segs.push(cur);
- segs.forEach(function(sg){if(sg.length>1)g+='<polyline points="'+sg.join(' ')+'" fill="none" stroke="#456b5a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';});
+ segs.forEach(function(sg){if(sg.length>1)g+='<polyline points="'+sg.join(' ')+'" fill="none" stroke="#2E3A55" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';});
  st.forEach(function(x,i){
   var val=vals[i]; if(val==null) return;
-  var c=(k==='score'&&GRC[x.grade])||'#456b5a', on=i===vm.sel;
+  var c=(k==='score'&&GRC[x.grade])||'#2E3A55', on=i===vm.sel;
   g+='<g class="pt" data-i="'+i+'"><circle cx="'+X(i)+'" cy="'+Y(val)+'" r="16" fill="transparent"/>'+(on?'<circle cx="'+X(i)+'" cy="'+Y(val)+'" r="9" fill="none" stroke="'+c+'" stroke-width="1.6" opacity=".45"/>':'')+'<circle cx="'+X(i)+'" cy="'+Y(val)+'" r="5.5" fill="'+c+'" stroke="#fff" stroke-width="1.5"/><text x="'+X(i)+'" y="'+(Y(val)-12)+'" font-size="12.5" font-weight="700" text-anchor="middle" fill="#262220">'+val+'</text><title>'+x.n+'주차 '+VMET.filter(function(m){return m.k===k;})[0].name+' '+val+VMET.filter(function(m){return m.k===k;})[0].u+'</title></g>';
  });
  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="주차별 '+VMET.filter(function(m){return m.k===k;})[0].name+' 그래프">'+g+'</svg>';
@@ -1047,6 +1161,6 @@ window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,lea
 if(restore()) route(hashView()||'hub',true); else{if(location.hash) setUrl(''); viewLogin();}
 })();
 </script>
-<script src="admin.js?v=2"></script>
+<script src="admin.js?v=3"></script>
 </body>
 </html>
