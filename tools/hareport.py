@@ -41,6 +41,10 @@
       "TRAINING" 탭에 훈련 기록 리포트를 등록합니다. 훈련 종류(Lesetraining, Hörtraining, Sprechtraining 등)별로 나뉘어 보입니다.
       --kind 를 주거나, 학생이 보낸 기록 파일을 --source 로 주면 파일 안의 앱 이름(예: "앱: SODA-Lehrwerk Lesetraining")에서 종류를 알아냅니다.
       회차(--n)는 종류 안에서 셉니다. 생략하면 그 종류의 다음 번호이고, 같은 번호를 다시 올리면 덮어씁니다.
+  python3 tools/hareport.py set-prior --id 김민서 --password 학생비밀번호 --level B1 --count 8 [--score 75] [--clear]
+      HA-REPORT에 올리기 전에 낸 정규 과정(A2, B1, B2) 과제 수를 적어 둡니다. 학생 화면의 "레벨 도달 예상"과 "성취 평가"가
+      그 레벨에서 얻은 과제 점수에 이 횟수를 더해 계산합니다. --score 는 그 과제들의 평균 점수(%)이고, 생략하면 등록된 과제의 평균으로 봅니다.
+      --clear 는 그 레벨에 적어 둔 값을 지웁니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -499,6 +503,31 @@ def cmd_training(a):
     print('TRAINING 저장: %s %d회 · %s · %s, %d자, 전체 %d개%s' % (kind, n, a.title, date, len(html), len(b['training']), ' (덮어씀)' if prev else ''))
 
 
+def cmd_prior(a):
+    # HA-REPORT에 올리기 전에 낸 정규 과정 과제 수. 학생 화면의 레벨 도달 예상(achieve.js)이 그 레벨의 과제 점수에 더합니다.
+    b, sid = read_bundle(a.id, a.password)
+    if a.level not in ('A2', 'B1', 'B2'):
+        sys.exit('--level 은 A2, B1, B2 중 하나입니다.')
+    pr = b.get('prior') if isinstance(b.get('prior'), dict) else {}
+    if a.clear:
+        pr.pop(a.level, None)
+    else:
+        if a.count is None or a.count < 0:
+            sys.exit('--count 에 HA-REPORT에 올리기 전에 낸 과제 수를 0 이상의 정수로 씁니다.')
+        e = {'n': a.count}
+        if a.score is not None:
+            if not 0 <= a.score <= 100:
+                sys.exit('--score 는 0~100 사이의 평균 점수(%)입니다.')
+            e['score'] = a.score
+        pr[a.level] = e
+    if pr:
+        b['prior'] = pr
+    else:
+        b.pop('prior', None)
+    write_bundle(b, sid, a.password)
+    print('이전 과제 수 저장: %s' % (', '.join('%s %d회%s' % (k, v['n'], (' (평균 %s%%)' % v['score']) if 'score' in v else '') for k, v in sorted(pr.items())) or '없음'))
+
+
 def cmd_show(a):
     b, sid = read_bundle(a.id, a.password)
     for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []) + b.get('results', []) + b.get('training', []):
@@ -574,6 +603,8 @@ def main():
     tg.add_argument('--kind'); tg.add_argument('--source'); tg.add_argument('--n', type=int); tg.add_argument('--date'); tg.set_defaults(f=cmd_training)
     z = sub.add_parser('resize-decoys'); z.add_argument('--admin-password', required=True); z.set_defaults(f=cmd_resize_decoys)
     nt = sub.add_parser('notify'); nt.add_argument('--id', required=True); nt.add_argument('--kind', choices=list(NOTIFY_KINDS), default='첨삭'); nt.add_argument('--dry-run', action='store_true'); nt.set_defaults(f=cmd_notify)
+    pr = sub.add_parser('set-prior'); [pr.add_argument('--' + k, required=True) for k in ('id', 'password', 'level')]
+    pr.add_argument('--count', type=int); pr.add_argument('--score', type=int); pr.add_argument('--clear', action='store_true'); pr.set_defaults(f=cmd_prior)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)
 

@@ -169,6 +169,7 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
 </div></header>
 <main class="wrap" id="app"></main>
 
+<script src="achieve.js?v=1"></script>
 <script>
 (function(){
 'use strict';
@@ -402,21 +403,25 @@ function viewReport(){
  if(session.data&&session.data.role==='admin'&&window.HAAdmin){window.HAAdmin.open();return;}
  var d=session.data; $('#top').hidden=false;
  curLevel=startLevel(d);
- var hasHa=(d.exams||[]).concat(d.reports||[]).some(function(x){return !isZ(lvOf(x,d));}), hasPrep=(d.results||[]).length>0||(d.exams||[]).concat(d.reports||[]).some(function(x){return isZ(lvOf(x,d));}), hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), hasTr=(d.training||[]).length>0, tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':hasPrep?'res':hasTr?'tr':'ha', ncol=3+(hasGr?1:0)+(hasTr?1:0);
- var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><div>'+(adminKeep?'<button class="btn" id="bk">관리자 화면으로</button> ':'')+'<button class="btn" id="out">로그아웃</button></div></div></div>';
+ var hasHa=(d.exams||[]).concat(d.reports||[]).some(function(x){return !isZ(lvOf(x,d));}), hasPrep=(d.results||[]).length>0||(d.exams||[]).concat(d.reports||[]).some(function(x){return isZ(lvOf(x,d));}), hasVoka=(d.voka||[]).length>0, hasGr=Array.isArray(d.grammatik), hasTr=(d.training||[]).length>0, tab=hasHa?'ha':hasVoka?'voka':hasGr?'gr':hasPrep?'res':hasTr?'tr':'ha', ncol=4+(hasGr?1:0)+(hasTr?1:0), ACH=window.HAAchieve, banner='';
+ /* 레벨 도달 예상(성취 평가): 과제 기록으로 계산해 이름 아래에 보여 줍니다. 계산에 실패해도 다른 화면은 그대로 열립니다 */
+ if(ACH){ACH.reset(); try{banner=ACH.topHtml(d)||'';}catch(e){banner='';}}
+ var h='<div class="vhead"><div class="row"><div><div class="who">'+esc(d.name)+'</div><div class="lv">현재 레벨 '+esc(d.level)+'</div></div><div>'+(adminKeep?'<button class="btn" id="bk">관리자 화면으로</button> ':'')+'<button class="btn" id="out">로그아웃</button></div></div></div>'+banner;
  h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류" style="grid-template-columns:repeat('+(ncol>4?3:ncol)+',1fr)">'
   +(hasGr?'<button type="button" class="mtab" role="tab" data-t="gr" aria-selected="'+(tab==='gr')+'">GRAMMATIK</button>':'')
-  +'<button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button><button type="button" class="mtab" role="tab" data-t="res" aria-selected="'+(tab==='res')+'">시험 준비</button>'+(hasTr?'<button type="button" class="mtab" role="tab" data-t="tr" aria-selected="'+(tab==='tr')+'">TRAINING</button>':'')+'</div>';
+  +'<button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button><button type="button" class="mtab" role="tab" data-t="res" aria-selected="'+(tab==='res')+'">시험 준비</button><button type="button" class="mtab" role="tab" data-t="ach" aria-selected="false">성취 평가</button>'+(hasTr?'<button type="button" class="mtab" role="tab" data-t="tr" aria-selected="'+(tab==='tr')+'">TRAINING</button>':'')+'</div>';
  h+='<div id="pane-ha"'+(tab==='ha'?'':' hidden')+'><section class="card lvsel"><h2>레벨 선택</h2><div class="levels" id="lvs" role="group" aria-label="레벨 선택">'+levelBtns(d,false,curLevel)+'</div></section>';
  h+='<div id="lvbody"></div></div>';
  h+='<div id="pane-voka"'+(tab==='voka'?'':' hidden')+'></div>';
  h+='<div id="pane-gr"'+(tab==='gr'?'':' hidden')+'></div>';
  h+='<div id="pane-res"'+(tab==='res'?'':' hidden')+'></div>';
+ h+='<div id="pane-ach" hidden></div>';
  h+='<div id="pane-tr"'+(tab==='tr'?'':' hidden')+'></div>';
  h+='<p class="foot">이 화면은 이 브라우저에서만 열려 있습니다. 다 본 뒤에는 로그아웃을 누르십시오.</p>';
  app.innerHTML=h;
  $('#out').addEventListener('click',leave);
  if($('#bk')) $('#bk').addEventListener('click',backToAdmin);
+ if($('#ach-go')) $('#ach-go').addEventListener('click',function(){setMain('ach');$('#mt').scrollIntoView({behavior:'smooth',block:'start'});});
  $('#lvs').addEventListener('click',function(e){
   var b=e.target.closest('.lvbtn'); if(!b||b.dataset.l===curLevel) return;
   renderLevel(b.dataset.l);
@@ -430,9 +435,15 @@ function viewReport(){
 }
 function setMain(t){
  $('#mt').querySelectorAll('.mtab').forEach(function(x){x.setAttribute('aria-selected',x.dataset.t===t?'true':'false');});
- $('#pane-ha').hidden=(t!=='ha'); $('#pane-voka').hidden=(t!=='voka'); $('#pane-gr').hidden=(t!=='gr'); $('#pane-res').hidden=(t!=='res'); if($('#pane-tr')) $('#pane-tr').hidden=(t!=='tr');
+ $('#pane-ha').hidden=(t!=='ha'); $('#pane-voka').hidden=(t!=='voka'); $('#pane-gr').hidden=(t!=='gr'); $('#pane-res').hidden=(t!=='res'); if($('#pane-tr')) $('#pane-tr').hidden=(t!=='tr'); if($('#pane-ach')) $('#pane-ach').hidden=(t!=='ach');
  window.onresize=null;
- if(t==='ha') renderLevel(curLevel); else if(t==='voka') renderVoka(); else if(t==='res') renderResults(); else if(t==='tr') renderTraining(); else renderGrammatik();
+ if(t==='ha') renderLevel(curLevel); else if(t==='voka') renderVoka(); else if(t==='res') renderResults(); else if(t==='tr') renderTraining(); else if(t==='ach') renderAchieve(); else renderGrammatik();
+}
+/* 성취 평가 탭: 학생이 값을 바꿔 가며 레벨 도달 시점을 직접 계산합니다(achieve.js) */
+function renderAchieve(){
+ var pane=$('#pane-ach'), ACH=window.HAAchieve;
+ if(!ACH){pane.innerHTML='<div class="empty">성취 평가를 불러오지 못했습니다. 화면을 새로 고친 뒤 다시 여십시오.</div>';return;}
+ try{ACH.render(pane,session.data);}catch(e){pane.innerHTML='<div class="empty">성취 평가를 계산하지 못했습니다.</div>';}
 }
 /* GRAMMATIK 실력 향상도 그래프: 리포트를 등록할 때 넣은 회차별 정답률(rate)로 그립니다 */
 function grAvg(a){return a.length?a.reduce(function(p,c){return p+c;},0)/a.length:0;}
