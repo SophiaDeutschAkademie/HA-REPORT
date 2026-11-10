@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Sophia Deutsch Akademie 학습 포탈</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="학습 포탈">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2E3A55">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
 <style>
 :root{--bg:#f6f5f2;--card:#fff;--ink:#262220;--mute:#6b665f;--line:#e3e0d8;--acc:#2E3A55;--accbg:#e1e5ee;--hero:#2E3A55;--good:#3a7d5c;--bad:#a84840;--warn:#9e7a2a}
@@ -146,6 +154,25 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
 .quote .src{margin:12px 0 0;font-size:12.5px;color:var(--mute)}
 @media (max-width:600px){.quote{padding:16px 18px}.quote .de{font-size:16.5px}.quote .ko{font-size:13.5px}.golist li.big a{min-height:84px;padding:15px 16px}.golist li.big b{font-size:19px}.golist li.big .ds{font-size:13px}}
 .lg-note{width:100%;max-width:380px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-size:13.5px;line-height:1.6}
+/* 로그인 화면의 「홈 화면에 추가」 버튼과 안내 창 */
+.a2hs-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:380px;margin:14px 0 0;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--acc);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.a2hs-btn:hover,.a2hs-btn:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}
+.a2hs-btn svg{width:20px;height:20px;flex:none}
+.a2hs-sheet{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+.a2hs-bg{position:absolute;inset:0;background:rgba(20,24,36,.45)}
+.a2hs-box{position:relative;width:calc(100% - 24px);max-width:440px;margin:0 0 calc(12px + env(safe-area-inset-bottom));padding:24px 22px 18px;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.2);outline:none}
+.a2hs-t{margin:0 0 14px;font-size:19px;line-height:1.4}
+.a2hs-c ol{margin:0 0 6px;padding:0;list-style:none;counter-reset:a2}
+.a2hs-c li{position:relative;margin:0 0 12px;padding-left:34px;font-size:15px;line-height:1.6}
+.a2hs-c li::before{counter-increment:a2;content:counter(a2);position:absolute;left:0;top:1px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;font-weight:700}
+.a2hs-c p{margin:0 0 14px;font-size:15px;line-height:1.6}
+.a2hs-c p.n{margin:4px 0 16px;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px;color:var(--mute)}
+.a2hs-c svg{display:inline-block;width:19px;height:19px;vertical-align:-4px;margin:0 2px}
+.a2hs-go,.a2hs-ok{display:flex;align-items:center;justify-content:center;width:100%;height:50px;border:0;border-radius:12px;background:var(--acc);color:#fff;font:inherit;font-size:16px;font-weight:700;cursor:pointer;text-decoration:none}
+.a2hs-go{margin:0 0 18px}
+.a2hs-ok.ghost{background:#e1e5ee;color:var(--acc)}
+@media (min-width:641px){.a2hs-sheet{align-items:center}.a2hs-box{margin:0}}
+@media print{.a2hs-btn,.a2hs-sheet{display:none!important}}
 [hidden]{display:none!important}
 .login{min-height:calc(100vh - 90px);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px 0 24px}
 .lg-logo{width:60px;height:69px;margin-bottom:18px}
@@ -1163,6 +1190,67 @@ function leave(){
 window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;},spApi:SP_API};
 /* 저장된 로그인이 있으면 로그인 화면 없이 첫 화면을 엽니다 */
 if(restore()) route(hashView()||'hub',true); else{if(location.hash) setUrl(''); viewLogin();}
+})();
+</script>
+<script>
+/* 로그인 화면의 「홈 화면에 추가」: 핸드폰 바탕화면에 학습 포탈 아이콘을 만듭니다(SODA-Lehrwerk 앱들의 「홈 화면에 앱 추가」와 같은 방식).
+   - Android Chrome 등 설치를 지원하는 브라우저는 버튼을 누르면 바로 설치 창이 뜹니다.
+   - 아이폰(Safari)은 설치 창을 띄울 수 없어 공유 → 홈 화면에 추가 순서를 보여 줍니다.
+   - 카카오톡 같은 앱 안의 브라우저에서는 홈 화면에 추가할 수 없어 다른 브라우저로 여는 방법을 보여 줍니다.
+   - 이미 홈 화면 아이콘으로 연 경우와 컴퓨터(설치 지원 브라우저 제외)에서는 버튼을 보이지 않습니다. */
+(function(){
+ if(location.protocol==='file:') return;
+ var ua=navigator.userAgent||'';
+ var standalone=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+ var ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ var android=/Android/i.test(ua), kakao=/KAKAOTALK/i.test(ua);
+ var inapp=kakao||/NAVER\(inapp|Instagram|FBAN|FBAV|FB_IAB|Line\/|DaumApps|Teams/i.test(ua);
+ var deferred=null, sheet=null, last=null;
+ function can(){return !standalone&&!!(deferred||ios||android||inapp);}
+ var SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+ var PHONE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v6M9 11h6"/></svg>';
+ function guide(){
+  if(inapp){
+   var url=location.href.split('#')[0];
+   return {t:'브라우저에서 열어 주십시오',go:true,c:'<p>카카오톡이나 Teams 같은 앱 안에서 연 화면에서는 홈 화면에 추가할 수 없습니다.</p>'
+    +(kakao?'<a class="a2hs-go" href="kakaotalk://web/openExternal?url='+encodeURIComponent(url)+'">다른 브라우저로 열기</a>':'')
+    +'<ol><li>화면 위나 아래의 <b>⋮</b> 또는 <b>⋯</b> 메뉴를 누릅니다.</li><li><b>다른 브라우저로 열기</b>(아이폰은 <b>Safari로 열기</b>)를 누릅니다.</li><li>'+(ios?'Safari':'Chrome')+'에서 다시 <b>홈 화면에 추가</b>를 누릅니다.</li></ol>'};
+  }
+  if(ios) return {t:'홈 화면에 추가',c:'<ol><li>Safari 아래(또는 위)의 공유 버튼 '+SHARE+'을 누릅니다. 버튼이 보이지 않으면 <b>⋯</b> 메뉴 안에 있습니다.</li><li><b>홈 화면에 추가</b>를 누르고 <b>추가</b>를 누릅니다.</li><li>바탕화면에 생긴 <b>학습 포탈</b> 아이콘으로 엽니다.</li></ol>'
+   +'<p class="n">아이폰에서는 홈 화면 아이콘으로 처음 열 때 한 번 더 로그인합니다.</p>'};
+  return {t:'홈 화면에 추가',c:'<ol><li>브라우저 오른쪽 위나 아래의 메뉴 <b>⋮</b> 또는 <b>≡</b>를 누릅니다.</li><li><b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 누릅니다.</li><li>바탕화면에 생긴 <b>학습 포탈</b> 아이콘으로 엽니다.</li></ol>'};
+ }
+ function build(){
+  if(sheet) return;
+  sheet=document.createElement('div'); sheet.className='a2hs-sheet'; sheet.hidden=true;
+  sheet.setAttribute('role','dialog'); sheet.setAttribute('aria-modal','true'); sheet.setAttribute('aria-labelledby','a2hs-t');
+  sheet.innerHTML='<div class="a2hs-bg" data-close></div><div class="a2hs-box" tabindex="-1"><h2 class="a2hs-t" id="a2hs-t"></h2><div class="a2hs-c"></div><button type="button" class="a2hs-ok" data-close>확인</button></div>';
+  sheet.addEventListener('click',function(e){if(e.target.closest('[data-close]')) close();});
+  document.body.appendChild(sheet);
+ }
+ function open(){
+  build(); var g=guide();
+  sheet.querySelector('.a2hs-t').textContent=g.t; sheet.querySelector('.a2hs-c').innerHTML=g.c;
+  var ok=sheet.querySelector('.a2hs-ok'); ok.className='a2hs-ok'+(g.go?' ghost':''); ok.textContent=g.go?'닫기':'확인';
+  last=document.activeElement; sheet.hidden=false; sheet.querySelector('.a2hs-box').focus();
+ }
+ function close(){if(!sheet||sheet.hidden) return; sheet.hidden=true; if(last&&last.focus) last.focus();}
+ function onClick(){
+  if(deferred&&!inapp){var d=deferred; deferred=null; d.prompt(); (d.userChoice||Promise.resolve()).then(refresh,refresh); return;}
+  open();
+ }
+ function refresh(){var l=document.querySelectorAll('.a2hs-btn'),i; for(i=0;i<l.length;i++) l[i].hidden=!can();}
+ /* 로그인 화면은 다시 그려지므로 그려질 때마다 안내 문구 아래에 버튼을 붙입니다 */
+ function mount(){
+  var lg=document.querySelector('#app .login'); if(!lg||lg.querySelector('.a2hs-btn')) return;
+  var help=lg.querySelector('.lg-help'); if(!help) return;
+  var b=document.createElement('button'); b.type='button'; b.className='a2hs-btn'; b.innerHTML=PHONE+'<span>홈 화면에 추가</span>'; b.hidden=!can();
+  b.addEventListener('click',onClick); help.parentNode.insertBefore(b,help.nextSibling);
+ }
+ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault(); deferred=e; refresh();});
+ window.addEventListener('appinstalled',function(){deferred=null; standalone=true; refresh(); close();});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape') close();});
+ mount(); new MutationObserver(mount).observe(document.getElementById('app'),{childList:true});
 })();
 </script>
 <script src="admin.js?v=5"></script>
