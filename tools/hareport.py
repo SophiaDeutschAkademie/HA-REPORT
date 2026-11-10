@@ -45,6 +45,9 @@
       HA-REPORT에 올리기 전에 낸 정규 과정(A2, B1, B2) 과제 수를 적어 둡니다. 학생 화면의 "레벨 도달 예상"과 "성취 평가"가
       그 레벨에서 얻은 과제 점수에 이 횟수를 더해 계산합니다. --score 는 그 과제들의 평균 점수(%)이고, 생략하면 등록된 과제의 평균으로 봅니다.
       --clear 는 그 레벨에 적어 둔 값을 지웁니다.
+  python3 tools/hareport.py set-sprechen --id 김민서 --password 학생비밀번호 --sp-password 말하기비밀번호 [--sp-id 말하기아이디] [--clear]
+      학생의 말하기 연습(SODA Sprechen) 계정을 학생 파일에 넣습니다. 학생이 학습 포탈에 로그인하면 말하기 연습에서는 이 계정으로 바로 로그인됩니다.
+      --sp-id 를 생략하면 말하기 아이디를 학생 아이디와 같게 봅니다. --clear 는 연결을 지웁니다. 관리자 페이지의 "말하기 계정"에서도 할 수 있습니다.
   python3 tools/hareport.py show --id 김민서 --password 학생비밀번호
   python3 tools/hareport.py resize-decoys --admin-password 관리비밀번호
       관리자 파일에 기록된 가짜 파일의 크기를 30KB~900KB로 다시 정합니다. 학생 파일이 커져 눈에 띌 때 실행합니다.
@@ -528,8 +531,25 @@ def cmd_prior(a):
     print('이전 과제 수 저장: %s' % (', '.join('%s %d회%s' % (k, v['n'], (' (평균 %s%%)' % v['score']) if 'score' in v else '') for k, v in sorted(pr.items())) or '없음'))
 
 
+def cmd_sprechen(a):
+    # 말하기 연습(SODA Sprechen) 계정을 학생 파일에 넣습니다. 학습 포탈(index.html)이 로그인할 때 이 값을 읽어 말하기 연습에 넘깁니다.
+    b, sid = read_bundle(a.id, a.password)
+    if a.clear:
+        b.pop('sprechen', None)
+        write_bundle(b, sid, a.password)
+        print('말하기 계정 연결을 지웠습니다: %s' % b['name'])
+        return
+    if not a.sp_password:
+        sys.exit('--sp-password 에 말하기 계정의 비밀번호를 주십시오. 연결을 지우려면 --clear 를 씁니다.')
+    b['sprechen'] = {'id': (a.sp_id or a.id).strip(), 'pw': a.sp_password}
+    write_bundle(b, sid, a.password)
+    print('말하기 계정 연결: %s → 말하기 아이디 %s' % (b['name'], b['sprechen']['id']))
+
+
 def cmd_show(a):
     b, sid = read_bundle(a.id, a.password)
+    if isinstance(b.get('sprechen'), dict) and b['sprechen'].get('pw'):
+        b['sprechen'] = dict(b['sprechen'], pw='(%d자)' % len(b['sprechen']['pw']))
     for r in b['reports'] + b.get('voka', []) + b.get('grammatik', []) + b.get('results', []) + b.get('training', []):
         r['html'] = '(%d자)' % len(r['html'])
     print(json.dumps(b, ensure_ascii=False, indent=1))
@@ -605,6 +625,8 @@ def main():
     nt = sub.add_parser('notify'); nt.add_argument('--id', required=True); nt.add_argument('--kind', choices=list(NOTIFY_KINDS), default='첨삭'); nt.add_argument('--dry-run', action='store_true'); nt.set_defaults(f=cmd_notify)
     pr = sub.add_parser('set-prior'); [pr.add_argument('--' + k, required=True) for k in ('id', 'password', 'level')]
     pr.add_argument('--count', type=int); pr.add_argument('--score', type=int); pr.add_argument('--clear', action='store_true'); pr.set_defaults(f=cmd_prior)
+    sp = sub.add_parser('set-sprechen'); [sp.add_argument('--' + k, required=True) for k in ('id', 'password')]
+    sp.add_argument('--sp-id'); sp.add_argument('--sp-password'); sp.add_argument('--clear', action='store_true'); sp.set_defaults(f=cmd_sprechen)
     s = sub.add_parser('show'); [s.add_argument('--' + k, required=True) for k in ('id', 'password')]; s.set_defaults(f=cmd_show)
     a = p.parse_args(); a.f(a)
 
