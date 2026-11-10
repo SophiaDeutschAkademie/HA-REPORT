@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HA-REPORT 도구: 학생 아이디와 비밀번호로 리포트와 시험 기록을 암호화해 data/ 에 저장합니다.
+"""SODA-LERNPORTAL(학습 포탈) 도구: 학생 아이디와 비밀번호로 리포트와 시험 기록을 암호화해 data/ 에 저장합니다.
 
 로그인: 학생이 아이디(이름)와 비밀번호 20자리를 입력합니다. 파일 이름은 아이디에서 계산한 값이라
 저장소만 봐서는 누가 등록되어 있는지 알 수 없습니다. 비밀번호와 관리 비밀번호는 저장소에 저장하지 않습니다.
@@ -42,7 +42,7 @@
       --kind 를 주거나, 학생이 보낸 기록 파일을 --source 로 주면 파일 안의 앱 이름(예: "앱: SODA-Lehrwerk Lesetraining")에서 종류를 알아냅니다.
       회차(--n)는 종류 안에서 셉니다. 생략하면 그 종류의 다음 번호이고, 같은 번호를 다시 올리면 덮어씁니다.
   python3 tools/hareport.py set-prior --id 김민서 --password 학생비밀번호 --level B1 --count 8 [--score 75] [--clear]
-      HA-REPORT에 올리기 전에 낸 정규 과정(A2, B1, B2) 과제 수를 적어 둡니다. 학생 화면의 "레벨 도달 예상"과 "성취 평가"가
+      학습 포탈에 올리기 전에 낸 정규 과정(A2, B1, B2) 과제 수를 적어 둡니다. 학생 화면의 "레벨 도달 예상"과 "성취 평가"가
       그 레벨에서 얻은 과제 점수에 이 횟수를 더해 계산합니다. --score 는 그 과제들의 평균 점수(%)이고, 생략하면 등록된 과제의 평균으로 봅니다.
       --clear 는 그 레벨에 적어 둔 값을 지웁니다.
   python3 tools/hareport.py set-sprechen --id 김민서 --password 학생비밀번호 --sp-password 말하기비밀번호 [--sp-id 말하기아이디] [--clear]
@@ -507,7 +507,7 @@ def cmd_training(a):
 
 
 def cmd_prior(a):
-    # HA-REPORT에 올리기 전에 낸 정규 과정 과제 수. 학생 화면의 레벨 도달 예상(achieve.js)이 그 레벨의 과제 점수에 더합니다.
+    # 학습 포탈에 올리기 전에 낸 정규 과정 과제 수. 학생 화면의 레벨 도달 예상(achieve.js)이 그 레벨의 과제 점수에 더합니다.
     b, sid = read_bundle(a.id, a.password)
     if a.level not in ('A2', 'B1', 'B2'):
         sys.exit('--level 은 A2, B1, B2 중 하나입니다.')
@@ -516,7 +516,7 @@ def cmd_prior(a):
         pr.pop(a.level, None)
     else:
         if a.count is None or a.count < 0:
-            sys.exit('--count 에 HA-REPORT에 올리기 전에 낸 과제 수를 0 이상의 정수로 씁니다.')
+            sys.exit('--count 에 학습 포탈에 올리기 전에 낸 과제 수를 0 이상의 정수로 씁니다.')
         e = {'n': a.count}
         if a.score is not None:
             if not 0 <= a.score <= 100:
@@ -598,7 +598,7 @@ def cmd_notify(a):
 
 
 def main():
-    p = argparse.ArgumentParser(description='HA-REPORT 도구')
+    p = argparse.ArgumentParser(description='SODA-LERNPORTAL(학습 포탈) 도구')
     sub = p.add_subparsers(dest='cmd', required=True)
     i = sub.add_parser('init-admin'); i.add_argument('--password'); i.add_argument('--replace-legacy', action='store_true'); i.set_defaults(f=cmd_init)
     k = sub.add_parser('link-student'); k.add_argument('--id', required=True); k.add_argument('--admin-password', required=True)

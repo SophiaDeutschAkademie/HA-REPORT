@@ -1,9 +1,10 @@
-/* HA-REPORT 관리자 화면. 로그인 화면에서 관리자 아이디로 로그인하면 index.html이 이 파일의 HAAdmin.open()을 부릅니다.
+/* SODA-LERNPORTAL(학습 포탈) 관리자 화면. 로그인 화면에서 관리자 아이디로 로그인하면 index.html이 이 파일의 HAAdmin.open()을 부릅니다.
    관리자 파일(암호화)에 학생 명단과 학생 비밀번호가 들어 있어, 브라우저 안에서 학생 파일을 열어 현황을 계산합니다.
    학생 추가·삭제는 GitHub API(Git Data API)로 저장소에 커밋 한 번으로 올립니다. 토큰이 필요합니다. */
 (function(){
 'use strict';
-var GH={owner:'SophiaDeutschAkademie',repo:'HA-REPORT',branch:'main'};
+/* 저장소 이름은 페이지 주소(…github.io/저장소이름/)에서 읽습니다. 이름을 SODA-LERNPORTAL로 바꾸기 전 주소(HA-REPORT)에서 열어도 같은 저장소를 씁니다 */
+var GH={owner:'SophiaDeutschAkademie',repo:(function(){var s=(location.pathname.split('/')[1]||'');return /^(soda-lernportal|ha-report)$/i.test(s)?s:'SODA-LERNPORTAL';})(),branch:'main'};
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
 var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2','SNU'], EXAMS=['telc','GZ'];
 function isZ(l){return /^ZERTIFIKAT/.test(l||'');}
@@ -129,7 +130,7 @@ function msgOf(e){
   if(e.remain==='0') return 'GitHub 요청 한도를 넘었습니다. 잠시 뒤 다시 시도하십시오.';
   return '토큰에 이 저장소의 쓰기 권한이 없습니다. 토큰을 만들 때 Resource owner를 SophiaDeutschAkademie(조직)로 고르고 Contents를 Read and write로 설정해야 합니다. 조직이 토큰 승인을 요구하면 조직 관리자 승인도 필요합니다.'+(e.gh?' (GitHub 응답: '+e.gh+')':'');
  }
- if(e&&e.status===404) return '저장소나 파일을 찾을 수 없습니다. 토큰이 HA-REPORT 저장소에 접근할 수 있는지 확인하십시오.';
+ if(e&&e.status===404) return '저장소나 파일을 찾을 수 없습니다. 토큰이 SODA-LERNPORTAL 저장소에 접근할 수 있는지 확인하십시오.';
  if(e&&(e.status===409||e.status===422)) return '다른 곳에서 저장소가 먼저 바뀌었습니다. 새로 불러오기를 누른 뒤 다시 시도하십시오.';
  if(e&&e.name==='OperationError') return '비밀번호가 맞지 않습니다.';
  if(e&&e.name==='TypeError') return '네트워크에 연결하지 못했습니다. 잠시 뒤 다시 시도하십시오.';
@@ -257,7 +258,7 @@ function open(o){
   +'<label class="thr">기준 <input id="athr" type="number" min="1" max="90" value="'+thr+'"> 일 이상 지남</label><button type="button" class="btn" id="arf">새로 불러오기</button></div></div>'
   +'<div class="tabs" id="aflt" role="tablist" aria-label="보기"></div><div class="msg" id="atmsg" role="status"></div><div class="tbscroll" id="atb"></div><p class="note" id="anote"></p></section>';
  h+='<section class="card asec" id="aman"><h2>학생 관리</h2>'
-  +'<h3>GitHub 토큰</h3><p class="note">학생 추가·삭제와 비밀번호 저장에 필요합니다. GitHub의 Settings → Developer settings → Fine-grained tokens에서 HA-REPORT 저장소 하나만 고르고 Contents 권한을 Read and write로 만든 토큰을 붙여 넣으십시오. 토큰은 저장소에 올라가지 않습니다.</p>'
+  +'<h3>GitHub 토큰</h3><p class="note">학생 추가·삭제와 비밀번호 저장에 필요합니다. GitHub의 Settings → Developer settings → Fine-grained tokens에서 SODA-LERNPORTAL 저장소 하나만 고르고 Contents 권한을 Read and write로 만든 토큰을 붙여 넣으십시오. 토큰은 저장소에 올라가지 않습니다.</p>'
   +'<div class="aform" style="grid-template-columns:1fr auto"><div><label for="atk">토큰</label><input id="atk" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_..."></div><div style="display:flex;gap:6px;padding-bottom:0"><button type="button" class="btn main" id="atks">사용</button><button type="button" class="btn" id="atkc">지우기</button></div></div>'
   +'<label class="chk" style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)"><input type="checkbox" id="atkr"> 이 브라우저에 기억합니다 (다음 로그인부터 다시 입력하지 않습니다. 여러 사람이 쓰는 컴퓨터에서는 끄십시오)</label><p class="note" id="atkn"></p>'
   +'<h3>학생 추가</h3><p class="note">새 학생 파일을 만들고 명단에 넣습니다. 비밀번호는 비워 두면 20자리로 자동 생성합니다.</p>'

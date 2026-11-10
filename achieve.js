@@ -1,4 +1,4 @@
-/* HA-REPORT 성취 평가
+/* SODA-LERNPORTAL(학습 포탈) 성취 평가
    - 학생 화면 위쪽의 "레벨 도달 예상": 등록된 과제 기록과 VOKA 리포트(단어 암기 기록), 최근 흐름으로 각 레벨에 도달하는 때를 계산합니다.
    - "성취 평가" 탭: 학생이 과제 이행률, 정답률, 추가 자습, 단어 암기를 바꿔 가며 직접 계산합니다.
    계산은 모두 이 브라우저 안에서 하고, 어떤 값도 밖으로 보내지 않습니다.
@@ -181,7 +181,7 @@ function median(a){var b=a.slice().sort(function(p,q){return p-q;}),m=b.length>>
    지금까지 외운 단어
    - 리포트마다 그 주차의 학습 완료 단어 수를 읽어 단어장별로 더합니다. 같은 단어장의 같은 주차가 두 번 있으면 큰 쪽 하나만 셉니다.
    - 주차 번호로 보아 리포트가 없는 주차(가장 높은 주차 번호 아래)는 그 단어장에서 읽은 주차별 단어 수의 중앙값만큼 외운 것으로 봅니다.
-     HA-REPORT에 올리기 전에 끝낸 앞 주차가 여기에 듭니다.
+     학습 포탈에 올리기 전에 끝낸 앞 주차가 여기에 듭니다.
    - 더 높은 단어장의 리포트가 있으면 그 아래 단어장은 끝낸 것으로 봅니다(그 레벨의 필수 단어 수).
    - "90%"처럼 비율만 적힌 리포트는 같은 단어장(없으면 그 학생의 다른 단어장) 리포트에 적힌 주차 단어 수의 중앙값으로 환산합니다.
    주간 암기 수
@@ -282,7 +282,7 @@ function analyze(d){
   var mine=subs.filter(function(x){return x.L===cur;}), md=mine.filter(function(x){return x.t!=null;});
   var P0=mine.reduce(function(p,x){return p+x.done*(x.acc!=null?x.acc:(accAll!=null?accAll:0));},0);
   var W=md.length?weeksSince(Math.min.apply(null,md.map(function(x){return x.t;})),now):0;
-  /* HA-REPORT에 올리기 전에 낸 과제(set-prior로 적어 둔 횟수)는 한 주에 하나씩 낸 것으로 보고 더합니다 */
+  /* 학습 포탈에 올리기 전에 낸 과제(set-prior로 적어 둔 횟수)는 한 주에 하나씩 낸 것으로 보고 더합니다 */
   var pr=(d.prior&&typeof d.prior==='object')?d.prior[REG[cur]]:null, pn=pr?num(pr.n):null, ps=pr?num(pr.score):null;
   pn=(pn!=null&&pn>0)?Math.floor(pn):0;
   if(pn){P0+=pn*(ps!=null?Math.max(0,Math.min(100,ps))/100:(accAll!=null?accAll:C.crit.sRef)); W+=pn;}
