@@ -34,6 +34,7 @@ h3{font-size:15px;margin:0 0 4px}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .lvbtn[aria-pressed="true"],.lvbtn[aria-pressed="true"]:hover{border-color:var(--acc);background:var(--accbg)}
 .lvbtn.none span{opacity:.8}
+.levels .lvnone{grid-column:1/-1;margin:0}
 .lvbtn b.lg{font-size:14px;line-height:1.3;display:block;overflow-wrap:anywhere;padding:2px 0 1px}
 @media (max-width:480px){.levels{grid-template-columns:repeat(3,1fr)}.lvbtn b.lg{font-size:12.5px}}
 .levels.l4{grid-template-columns:repeat(4,1fr)}
@@ -618,14 +619,20 @@ function resLevel(x){var m=String(x.exam||'').match(/\b(A2|B1|B2)$/);return m?'Z
 function startLevel(d){
  var best=null;
  (d.exams||[]).forEach(function(e){if(isZ(lvOf(e,d)))return; if(!best||String(e.date||'')>=String(best.date||''))best=e;});
- return best?lvOf(best,d):(isZ(d.level)?levelsOf(d,false)[0]:d.level);
+ var L=best?lvOf(best,d):(isZ(d.level)?levelsOf(d,false)[0]:d.level);
+ if(!hasItems(d,L)){var f=levelsOf(d,false).filter(function(x){return hasItems(d,x);})[0]; if(f) L=f;}
+ return L;
 }
-function levelBtns(d,z,cur){
- return levelsOf(d,z).map(function(L){
-  var it=itemsFor(d,L), none=!it.exams.length&&!it.reps.length;
+/* 레벨 버튼: 등록된 리포트가 없는 레벨은 보여 주지 않습니다. 모두 없으면 안내 한 줄을 보여 줍니다(noneMsg) */
+var NONE_MSG='<p class="note lvnone">등록된 리포트가 아직 없습니다.</p>';
+function hasItems(d,L){var it=itemsFor(d,L);return it.exams.length>0||it.reps.length>0;}
+function levelBtns(d,z,cur,noneMsg){
+ var h=levelsOf(d,z).filter(function(L){return hasItems(d,L);}).map(function(L){
+  var it=itemsFor(d,L), none=false;
   return '<button type="button" class="lvbtn'+(none?' none':'')+'" data-t="lv" data-l="'+esc(L)+'" aria-pressed="'+(L===cur)+'"><b'+(!z&&L.length>3?' class="lg"':'')+'>'+esc(z?L.replace(/^ZERTIFIKAT\s*/,''):L)+'</b>'
-   +(none?'<span>등록된 리포트 없음</span>':'<span>리포트 '+Math.max(it.reps.length,it.exams.length)+'개</span>')+'</button>';
+   +'<span>리포트 '+Math.max(it.reps.length,it.exams.length)+'개</span></button>';
  }).join('');
+ return h||(noneMsg?NONE_MSG:'');
 }
 
 /* ===== 학습 포탈: 로그인 뒤 첫 화면과 화면 이동 =====
@@ -763,7 +770,8 @@ function viewReport(){
  h+='<div class="mtabs" id="mt" role="tablist" aria-label="리포트 종류" style="grid-template-columns:repeat('+(ncol>4?3:ncol)+',1fr)">'
   +(hasGr?'<button type="button" class="mtab" role="tab" data-t="gr" aria-selected="'+(tab==='gr')+'">GRAMMATIK</button>':'')
   +'<button type="button" class="mtab" role="tab" data-t="ha" aria-selected="'+(tab==='ha')+'">과제 첨삭</button><button type="button" class="mtab" role="tab" data-t="voka" aria-selected="'+(tab==='voka')+'">VOKA</button><button type="button" class="mtab" role="tab" data-t="res" aria-selected="'+(tab==='res')+'">시험 준비</button>'+(hasTr?'<button type="button" class="mtab" role="tab" data-t="tr" aria-selected="'+(tab==='tr')+'">TRAINING</button>':'')+'<button type="button" class="mtab" role="tab" data-t="ach" aria-selected="false">성취 평가</button></div>';
- h+='<div id="pane-ha"'+(tab==='ha'?'':' hidden')+'><section class="card lvsel"><h2>레벨 선택</h2><div class="levels" id="lvs" role="group" aria-label="레벨 선택">'+levelBtns(d,false,curLevel)+'</div></section>';
+ var lvB=levelBtns(d,false,curLevel);
+ h+='<div id="pane-ha"'+(tab==='ha'?'':' hidden')+'><section class="card lvsel"'+(lvB?'':' hidden')+'><h2>레벨 선택</h2><div class="levels" id="lvs" role="group" aria-label="레벨 선택">'+lvB+'</div></section>';
  h+='<div id="lvbody"></div></div>';
  h+='<div id="pane-voka"'+(tab==='voka'?'':' hidden')+'></div>';
  h+='<div id="pane-gr"'+(tab==='gr'?'':' hidden')+'></div>';
@@ -883,7 +891,8 @@ function prepStart(d){
  return best?{t:best.t,v:best.v}:{t:'lv',v:levelsOf(d,true)[0]};
 }
 function prepBtns(d){
- var h='<div class="pgl">ZERTIFIKAT</div><div class="levels l3">'+levelBtns(d,true,pSel&&pSel.t==='lv'?pSel.v:null)+'</div>', K=resKinds(d);
+ var zb=levelBtns(d,true,pSel&&pSel.t==='lv'?pSel.v:null), h=zb?'<div class="pgl">ZERTIFIKAT</div><div class="levels l3">'+zb+'</div>':'', K=resKinds(d);
+ if(!zb&&!K.length) return '';
  if(K.length) h+='<div class="pgl">시험 종류별 결과</div><div class="levels">';
  K.forEach(function(k){
   var c=resOf(d,k).length;
@@ -897,7 +906,8 @@ function renderResults(){
  window.onresize=null;
  var ok=pSel&&(pSel.t==='lv'?levelsOf(d,true).indexOf(pSel.v)>=0:resKinds(d).indexOf(pSel.v)>=0);
  if(!ok) pSel=prepStart(d);
- pane.innerHTML='<section class="card lvsel"><h2>시험 선택</h2><div id="rlvs" role="group" aria-label="시험 선택">'+prepBtns(d)+'</div></section><div id="rbody"></div><div id="lvbodyz"></div>';
+ var pb=prepBtns(d);
+ pane.innerHTML='<section class="card lvsel"'+(pb?'':' hidden')+'><h2>시험 선택</h2><div id="rlvs" role="group" aria-label="시험 선택">'+pb+'</div></section><div id="rbody"></div><div id="lvbodyz"></div>';
  $('#rlvs').addEventListener('click',function(e){
   var b=e.target.closest('.lvbtn'); if(!b) return;
   var nt=b.dataset.t, nv=nt==='lv'?b.dataset.l:b.dataset.k;
@@ -1052,10 +1062,11 @@ function vokaStart(d){
  return best?vGroup(lvOf(best,d)):VLV[0];
 }
 function vokaBtns(d){
- return vokaLevels(d).map(function(L){
+ var h=vokaLevels(d).filter(function(L){return vokaOf(d,L).length>0;}).map(function(L){
   var c=vokaOf(d,L).length;
-  return '<button type="button" class="lvbtn'+(c?'':' none')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===vLevel)+'"><b>'+esc(L)+'</b>'+(c?'<span>리포트 '+c+'개</span>':'<span>등록된 리포트 없음</span>')+'</button>';
+  return '<button type="button" class="lvbtn'+(c?'':' none')+'" data-l="'+esc(L)+'" aria-pressed="'+(L===vLevel)+'"><b>'+esc(L)+'</b>'+'<span>리포트 '+c+'개</span></button>';
  }).join('');
+ return h||NONE_MSG;
 }
 function renderVoka(){
  var d=session.data, pane=$('#pane-voka');
@@ -1107,7 +1118,7 @@ function renderVokaLevel(){
 }
 function renderLevel(L){
  curLevel=L; window.onresize=null;
- $('#lvs').innerHTML=levelBtns(session.data,false,curLevel);
+ var lb=levelBtns(session.data,false,curLevel); $('#lvs').innerHTML=lb; $('#lvs').parentNode.hidden=!lb;
  levelBody(L,'');
 }
 /* 레벨 하나의 발전 기록과 리포트를 그립니다. sf는 요소 id 뒤에 붙는 구분 문자('' = 과제 첨삭, 'z' = 시험 준비) */
