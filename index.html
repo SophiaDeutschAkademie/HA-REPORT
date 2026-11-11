@@ -386,6 +386,17 @@ function readSess(){
 }
 function writeSess(s){try{localStorage.setItem(SKEY,JSON.stringify(s));}catch(e){}}
 function clearSess(){try{localStorage.removeItem(SKEY);}catch(e){}}
+/* 선생님(관리자) 통과 로그인: 관리자 화면에서 SODA GRAMMATIK을 열 때 씁니다. 관리자 파일 대신 선생님용 확인 파일(data/{t.sid}.bin, 내용 없음)의 키를 남기므로
+   이 브라우저에 남는 값으로는 관리자 파일과 학생 파일을 열 수 없습니다. 학생 로그인이 이미 있으면 그대로 둡니다(force면 바꿈).
+   SODA-GRAMMATIK-KURS의 portal-gate.js가 쓰는 확인 표시(soda-portal:gate)도 함께 남겨, 확인 파일이 Pages에 반영되기 전에도 바로 열립니다 */
+function teacherSess(t,force){
+ if(!t||!t.sid||!t.k) return false;
+ var cur=readSess(); if(cur&&!cur.t&&!force) return true;
+ var now=Date.now(), x={v:1,t:1,sid:t.sid,id:'teacher',name:'관리자',level:'',k:t.k,at:now,exp:now+STTL};
+ writeSess(x);
+ try{localStorage.setItem('soda-portal:gate',x.sid+'|'+x.at+'|'+String(x.k).slice(0,12));}catch(e){}
+ return true;
+}
 function spOf(d){var p=d&&d.sprechen; return (p&&p.id&&p.pw)?{id:String(p.id),pw:String(p.pw)}:null;}
 /* fresh=true: 방금 로그인함(유효 시각을 새로 잡음). false: 저장된 로그인으로 학생 파일을 다시 읽음(유효 시각과 이 로그인 동안 확인한 말하기 계정은 그대로) */
 function saveSess(fresh){
@@ -487,6 +498,7 @@ function viewLogin(opt){
   fails=0; inp.value='';
   if(o.data&&o.data.role==='admin'){ /* 관리자 로그인은 브라우저에 남기지 않습니다 */
    clearSess(); setUrl('');
+   if(opt.back&&teacherSess(o.data.teacher,true)){location.replace(opt.back);return;} /* SODA GRAMMATIK에서 로그인하러 온 관리자는 그 페이지로 돌려보냅니다 */
    session={data:o.data,sid:sid,pw:pwv,kb:o.bits}; viewReport(); return;
   }
   session={data:o.data,sid:sid,pw:null,kb:o.bits,uid:uidv};
@@ -661,7 +673,7 @@ function route(v,replace){
 }
 /* 저장된 로그인으로 다시 엽니다. 학생 파일은 「나의 학습 기록 보기」를 누를 때 읽습니다 */
 function restore(){
- var s=readSess(); if(!s) return false;
+ var s=readSess(); if(!s||s.t) return false; /* 선생님 통과 로그인은 포탈 화면을 열지 않습니다 */
  try{session={data:null,sid:s.sid,pw:null,kb:b64d(s.k),uid:s.id,stub:{name:s.name,level:s.level}};}catch(e){session=null;clearSess();return false;}
  portalSeen(false);
  return true;
@@ -763,6 +775,7 @@ function syncSess(){
  if(!isStudent()) return;
  var s=readSess();
  if(!s){leave();return;}
+ if(s.t){leaveTo(false);return;}
  if(s.sid===session.sid) return;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
  hidden={}; curLevel=null; vLevel=null; pSel=null; tSel=null;
@@ -1206,16 +1219,17 @@ function previewStudent(data){
  adminKeep=session.data; session.data=data; hidden={}; curLevel=null; vLevel=null; pSel=null; tSel=null; app.className='wrap';
  viewReport();
 }
-function leave(){
+function leave(){leaveTo(true);}
+function leaveTo(clear){ /* clear=false: 다른 탭에서 선생님 통과 로그인을 남긴 경우. 그 값은 지우지 않고 이 탭만 로그인 화면으로 돌립니다 */
  if(window.HAAdmin) window.HAAdmin.close();
  adminKeep=null; session=null; hidden={}; curLevel=null; vLevel=null; pSel=null; tSel=null;
  objUrls.forEach(function(u){URL.revokeObjectURL(u);}); objUrls=[];
  window.onresize=null;
- clearSess(); setUrl('');
+ if(clear) clearSess(); setUrl('');
  viewLogin(); window.scrollTo(0,0);
 }
 
-window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;},spApi:SP_API,b64e:b64e,learn:LEARN};
+window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;},spApi:SP_API,b64e:b64e,learn:LEARN,teacherSess:teacherSess};
 /* 다른 학습 앱(SODA GRAMMATIK 등)이 로그인 확인을 위해 보낸 경우: 주소의 ?next=(같은 사이트 안의 경로)로 로그인 뒤 돌아갑니다.
    relogin=1이면 저장된 로그인이 있어도 비밀번호를 다시 받습니다(학생 파일이 새로 저장되어 저장된 키로 열리지 않을 때) */
 var Q=new URLSearchParams(location.search), BACK=Q.get('next')||'', RELOGIN=Q.get('relogin')==='1';
@@ -1291,6 +1305,6 @@ else if(restore()) route(hashView()||'hub',true); else{if(location.hash) setUrl(
  mount(); new MutationObserver(mount).observe(document.getElementById('app'),{childList:true});
 })();
 </script>
-<script src="admin.js?v=8"></script>
+<script src="admin.js?v=9"></script>
 </body>
 </html>

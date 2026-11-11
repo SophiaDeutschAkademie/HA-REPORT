@@ -213,6 +213,7 @@ var CSS='.wrap.wide{max-width:1280px}.at td:first-child{white-space:nowrap}.at a
 +'.algrid .gar{display:flex;color:var(--acc);flex:none}.algrid .gar svg{width:16px;height:16px}'
 +'.algrid li.big a{background:var(--acc);border-color:var(--acc);color:#fff}.algrid li.big a small,.algrid li.big a .gar{color:#dfe3ec}'
 +'.algrid li.big a:hover,.algrid li.big a:focus-visible{background:#3B4863;border-color:#3B4863}'
++'.alpw{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px;font-size:13px;color:var(--mute)}.alpw b{color:var(--ink);font-weight:600}#almsg:empty{display:none}'
 +'.algrid .off{border-style:dashed;background:transparent;color:var(--mute)}@media(max-width:820px){.algrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.algrid small{display:none}.algrid a,.algrid .off{min-height:44px;padding:8px 10px}.algrid b{font-size:13.5px}}'
 +'.thr{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)}.thr input{width:60px;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:14px}';
 function injectStyle(){
@@ -253,15 +254,144 @@ function needToken(){
 
 /* 수업 바로가기: 학생 화면 「학습 진행하기」와 같은 목록(index.html의 LEARN)을 버튼으로 보여 줍니다. 목록을 바꾸면 여기도 같이 바뀝니다 */
 var AR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>', probed={};
+var CH={a2:'A2',b1:'B1',b2:'B2',c1:'C1'};
+function chOf(lv){var c=(A&&A.chapters&&A.chapters[lv])||{};return c;}
+function linkSub(x){
+ if(CH[x.k]){var n=Object.keys(chOf(CH[x.k])).length;return n?'챕터 비밀번호 '+n+'개 자동 입력':'챕터 비밀번호 미등록';}
+ return x.d;
+}
 function linkItem(x){
- var sub=x.d+(x.k==='gr'?' · 학생 로그인 필요':'');
+ var sub=linkSub(x);
  if(x.probe&&probed[x.k]!==true) return '<div class="off"><span><b>'+esc(x.t)+'</b><small>준비 중입니다</small></span></div>';
- return '<a href="'+esc(x.u)+'" target="_blank" rel="noopener" title="'+esc(sub)+'"><span><b>'+esc(x.t)+'</b><small>'+esc(sub)+'</small></span><span class="gar">'+AR+'</span></a>';
+ return '<a href="'+esc(x.u)+'" target="_blank" rel="noopener" data-k="'+esc(x.k)+'" title="'+esc(sub)+'"><span><b>'+esc(x.t)+'</b><small>'+esc(sub)+'</small></span><span class="gar">'+AR+'</span></a>';
+}
+function chSummary(){
+ return ['A2','B1','B2','C1'].map(function(l){var n=Object.keys(chOf(l)).length;return n?l+' '+n+'개':'';}).filter(Boolean).join(' · ')||'아직 없음';
 }
 function linksHtml(){
  var L=H().learn||[]; if(!L.length) return '';
- return '<section class="alinks" aria-label="수업 바로가기"><h2>수업 바로가기</h2><ul class="algrid">'
-  +L.map(function(x){return '<li id="al-'+x.k+'"'+(x.big?' class="big"':'')+'>'+linkItem(x)+'</li>';}).join('')+'</ul></section>';
+ return '<section class="alinks" aria-label="수업 바로가기"><h2>수업 바로가기</h2><ul class="algrid" id="algrid">'
+  +L.map(function(x){return '<li id="al-'+x.k+'"'+(x.big?' class="big"':'')+'>'+linkItem(x)+'</li>';}).join('')+'</ul>'
+  +'<div class="alpw"><span>등록된 챕터 비밀번호: <b id="alpwn">'+esc(chSummary())+'</b></span>'
+  +'<button type="button" class="btn sm" id="alpwb">챕터 비밀번호 파일 등록</button><input type="file" id="alpwf" accept=".html,.htm,.txt" multiple hidden></div>'
+  +'<div class="msg" id="almsg" role="status"></div></section>';
+}
+function lsay(msg,err){var m=$('#almsg');if(m){m.className='msg'+(err?' err':'');m.textContent=msg||'';}}
+function refreshLinks(){
+ (H().learn||[]).forEach(function(x){var li=$('#al-'+x.k);if(li)li.innerHTML=linkItem(x);});
+ var n=$('#alpwn'); if(n) n.textContent=chSummary();
+}
+
+/* SODA A2 · B1 · B2: 챕터 앱은 같은 사이트의 sessionStorage 'pw'+챕터 번호(예: pw01)에 맞는 비밀번호가 있으면 입력 없이 엽니다.
+   새 탭을 열면서 그 탭의 sessionStorage에 비밀번호를 넣습니다. 이 탭에는 남기지 않습니다. 학생 화면의 링크는 바뀌지 않습니다 */
+function putPw(st,pw,on){Object.keys(pw).forEach(function(no){try{if(on)st.setItem('pw'+no,pw[no]);else st.removeItem('pw'+no);}catch(e){}});}
+function openWithPw(url,pw){
+ putPw(sessionStorage,pw,true); /* 새 탭은 여는 순간 이 탭의 sessionStorage를 복사합니다 */
+ var w=null; try{w=window.open(url,'_blank');}catch(e){w=null;}
+ putPw(sessionStorage,pw,false);
+ if(!w){lsay('새 탭이 막혔습니다. 브라우저 주소창 오른쪽의 팝업 차단 표시에서 이 사이트를 허용한 뒤 다시 누르십시오.',true);return;}
+ var path=new URL(url,location.href).pathname, n=0;
+ (function fill(){ /* 복사가 안 되는 브라우저를 위해 새 탭이 열린 뒤 한 번 더 넣습니다 */
+  try{
+   if(w.closed) return;
+   if(w.location.pathname===path&&w.document.readyState!=='loading'){putPw(w.sessionStorage,pw,true);w.opener=null;return;}
+  }catch(e){}
+  if(++n<150) setTimeout(fill,100);
+ })();
+}
+
+/* SODA GRAMMATIK: 학습 포탈 로그인을 확인하므로 선생님 통과 로그인을 남긴 뒤 엽니다. 선생님용 확인 파일이 없으면 한 번 만듭니다(토큰 필요) */
+async function encryptRaw(obj,key,sid){
+ var iv=randBytes(12), enc=new TextEncoder();
+ var k=await crypto.subtle.importKey('raw',key,'AES-GCM',false,['encrypt']);
+ var ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:iv,additionalData:enc.encode(sid)},k,enc.encode(JSON.stringify(obj))));
+ var out=new Uint8Array(28+ct.length); out.set(randBytes(16),0); out.set(iv,16); out.set(ct,28);
+ return out;
+}
+async function makeTeacher(){
+ var files=await listData(), names={}, k;
+ files.forEach(function(f){names[f.name]=1;});
+ var fresh=await adminFresh();
+ if(fresh.teacher&&fresh.teacher.sid&&fresh.teacher.k){A.teacher=fresh.teacher;return fresh.teacher;}
+ var sid=hex10(); while(names[sid+'.bin']) sid=hex10();
+ var key=randBytes(32);
+ fresh.teacher={sid:sid,k:b64(key)};
+ var changes=[{path:'data/'+sid+'.bin',bytes:await encryptRaw(withPad({role:'teacher'}),key,sid)}], count=files.length+1;
+ for(k=0;k<fresh.decoys.length;k++){ /* 가짜 파일 하나를 지워 파일 수를 20개 단위로 유지합니다 */
+  if(names[fresh.decoys[k]+'.bin']){changes.push({path:'data/'+fresh.decoys[k]+'.bin',bytes:null,del:true});fresh.decoys.splice(k,1);count--;break;}
+ }
+ while(count%20!==0){var d=hex10();changes.push({path:'data/'+d+'.bin',bytes:randBytes(decoySize())});fresh.decoys.push(d);count++;}
+ mergePending(fresh);
+ changes.push({path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)});
+ await ghCommit(changes,'데이터 갱신',function(i,n){lsay('선생님용 확인 파일을 저장소에 올리고 있습니다. ('+i+'/'+n+')');});
+ A=fresh; pending={};
+ return fresh.teacher;
+}
+async function openGrammatik(url){
+ if(A.teacher&&H().teacherSess(A.teacher)){window.open(url,'_blank','noopener');return;}
+ if(!token){lsay('처음 한 번은 선생님용 확인 파일을 만들어야 합니다. 아래 "학생 관리"에서 GitHub 토큰을 입력한 뒤 다시 누르십시오.',true);return;}
+ if(working) return;
+ var w=window.open('about:blank','_blank'); /* 저장소에 올리는 동안 팝업 차단을 피하려고 탭을 먼저 엽니다 */
+ busy(true);
+ try{
+  var t=await makeTeacher();
+  H().teacherSess(t);
+  lsay('');
+  if(w&&!w.closed){w.opener=null;w.location.replace(url);} else window.open(url,'_blank','noopener');
+ }catch(e){if(w&&!w.closed)w.close();lsay(msgOf(e),true);}
+ finally{busy(false);}
+}
+function onLinks(e){
+ var a=e.target.closest('a[data-k]'); if(!a) return;
+ var k=a.dataset.k;
+ if(k==='gr'){e.preventDefault();openGrammatik(a.href);return;}
+ if(CH[k]){var pw=chOf(CH[k]);if(Object.keys(pw).length){e.preventDefault();openWithPw(a.href,pw);}}
+}
+
+/* 챕터 비밀번호 등록: 챕터 비밀번호 파일(HTML)을 고르면 읽어서 관리자 파일 안에 암호화해 넣습니다. 저장소에 평문으로 올리지 않습니다.
+   - HTML: <section id="a2">처럼 레벨별로 묶인 표(챕터 번호 .no와 비밀번호 <code>). 묶음이 없으면 파일 이름이나 제목의 A2 · B1 · B2 · C1로 레벨을 정합니다.
+   - 텍스트: 한 줄에 "A2 01 비밀번호" */
+function pad2s(n){n=String(parseInt(n,10));return n.length<2?'0'+n:n;}
+function lvIn(t){var m=/\b(A2|B1|B2|C1)\b/i.exec(String(t||'').replace(/[_\-]/g,' '));return m?m[1].toUpperCase():'';}
+function parsePwFile(name,text){
+ var out={}, add=function(lv,no,pw){if(!lv||!no||!pw)return;(out[lv]=out[lv]||{})[pad2s(no)]=pw;};
+ if(/<code[\s>]/i.test(text)){
+  var doc=new DOMParser().parseFromString(text,'text/html');
+  var secs=Array.prototype.filter.call(doc.querySelectorAll('section[id]'),function(x){return lvIn(x.id);});
+  var groups=secs.length?secs.map(function(x){return [lvIn(x.id),x];}):[[lvIn(name)||lvIn((doc.querySelector('h1,h2,title')||{}).textContent),doc.body]];
+  groups.forEach(function(g){
+   g[1].querySelectorAll('code').forEach(function(c){
+    var row=c.parentElement; while(row&&row!==g[1]&&!row.querySelector('.no')) row=row.parentElement;
+    var noEl=row&&row!==g[1]?row.querySelector('.no'):null, no=noEl&&/\d+/.exec(noEl.textContent);
+    add(g[0],no&&no[0],c.textContent.trim());
+   });
+  });
+ }else{
+  String(text).split(/\r?\n/).forEach(function(l){var m=/^\s*(A2|B1|B2|C1)\s*[-·.\s]\s*(\d{1,2})\s*[:\-·.\s]\s*(\S+)\s*$/i.exec(l);if(m)add(m[1].toUpperCase(),m[2],m[3]);});
+ }
+ return out;
+}
+async function savePwFiles(fl){
+ if(!fl||!fl.length) return;
+ if(working) return;
+ if(!token){lsay('챕터 비밀번호를 저장하려면 아래 "학생 관리"에서 GitHub 토큰을 먼저 입력하십시오.',true);return;}
+ var got={}, i, lv, n=0, txt;
+ for(i=0;i<fl.length;i++){
+  txt=await fl[i].text(); var r=parsePwFile(fl[i].name,txt);
+  for(lv in r){got[lv]=got[lv]||{};Object.keys(r[lv]).forEach(function(no){got[lv][no]=r[lv][no];n++;});}
+ }
+ if(!n){lsay('파일에서 챕터 비밀번호를 찾지 못했습니다. 챕터 비밀번호 HTML 파일을 고르십시오.',true);return;}
+ busy(true);
+ try{
+  var fresh=await adminFresh(); mergePending(fresh);
+  fresh.chapters=fresh.chapters||{};
+  for(lv in got){fresh.chapters[lv]=fresh.chapters[lv]||{};Object.keys(got[lv]).forEach(function(no){fresh.chapters[lv][no]=got[lv][no];});}
+  await ghCommit([{path:'data/'+S.sid+'.bin',bytes:await encryptBundle(withPad(fresh),S.pw,S.sid)}],'데이터 갱신',function(){lsay('관리자 파일에 저장하고 있습니다.');});
+  A=fresh; pending={};
+  refreshLinks();
+  lsay('챕터 비밀번호를 저장했습니다: '+Object.keys(got).map(function(l){return l+' '+Object.keys(got[l]).length+'개';}).join(' · ')+'. 이제 수업 바로가기에서 비밀번호 입력 없이 열립니다.');
+ }catch(e){lsay(msgOf(e),true);}
+ finally{busy(false);}
 }
 function probeLinks(){
  (H().learn||[]).forEach(function(x){
@@ -335,6 +465,9 @@ function open(o){
   try{navigator.clipboard.writeText(b.dataset.t);b.textContent='복사했습니다';}catch(x){b.textContent='복사하지 못했습니다';}
  });
  tokenNote(); probeLinks();
+ $('#algrid').addEventListener('click',onLinks);
+ $('#alpwb').addEventListener('click',function(){if(!working)$('#alpwf').click();});
+ $('#alpwf').addEventListener('change',function(){var f=this.files;savePwFiles(Array.prototype.slice.call(f||[])).then(function(){$('#alpwf').value='';});});
  window.scrollTo(0,0);
  if(keep) renderTable(); else loadAll();
 }
