@@ -350,15 +350,15 @@ async function loadPresence(){
  PR.state='load';
  try{
   var r=await fetch(H().spApi+'/portal/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:S.sid,k:H().b64e(S.kb)})});
-  if(!r.ok){PR={state:r.status===404?'old':'err',seen:{},sp:{},at:0};}
-  else{var j=await r.json(); PR={state:'ok',seen:j.seen||{},sp:j.sp||{},at:Date.now()};}
- }catch(e){PR={state:'err',seen:{},sp:{},at:0};}
+  if(!r.ok){var ej=await r.json().catch(function(){return null;}); PR={state:(r.status===404&&ej&&ej.error==='not_found')?'old':'err',why:r.status+(ej&&ej.message?' · '+ej.message:''),seen:{},sp:{},at:0};}
+  else{var j=await r.json(), byName={}; Object.keys(j.sp||{}).forEach(function(k){var nm=spKey(j.sp[k].name); if(nm&&!byName[nm]) byName[nm]=j.sp[k];}); PR={state:'ok',seen:j.seen||{},sp:j.sp||{},byName:byName,at:Date.now()};}
+ }catch(e){PR={state:'err',why:'연결 실패'+(e&&e.message?' · '+e.message:''),seen:{},sp:{},at:0};}
  renderTable();
 }
 function spKey(v){return String(v==null?'':v).normalize('NFC').trim().toLowerCase();}
 function exLabel(ex,teil){
  var m=/^ueb-(a1|a2|b1|b2)-(\d+)$/.exec(ex||''), n;
- if(m) return m[1].toUpperCase()+' Kapitel '+m[2];
+ if(m) return m[1]==='a1'?'GRAMMATIK Lektion '+m[2]:'SODA '+m[1].toUpperCase()+' Kapitel '+m[2];
  m=/^(goethe|telc)-(a2|b1|b2)(?:-(\d+))?$/.exec(ex||'');
  if(m) return (m[1]==='goethe'?'Goethe ':'telc ')+m[2].toUpperCase()+'-'+(m[3]||'1')+(teil?' · Teil '+teil:'');
  return String(ex||'')+(teil?' · Teil '+teil:'');
@@ -369,11 +369,14 @@ function whenHtml(ms){
 }
 function presCells(s,m){
  if(PR.state==='load') return '<td class="pres">…</td><td class="pres">…</td>';
- if(PR.state!=='ok') return '<td class="pres">-</td><td class="pres">-</td>';
- var lg=PR.seen[s.fid], sp=PR.sp[spKey((m&&m.sp)||s.id)], a, b;
+ if(PR.state!=='ok') return '<td class="pres"><span class="mute">확인 불가</span></td><td class="pres"><span class="mute">확인 불가</span></td>';
+ /* 말하기 계정 찾기: 학생 파일의 말하기 계정 → 포탈 아이디 → 이름(띄어쓰기 없이) → 말하기 계정에 적힌 이름 */
+ var lg=PR.seen[s.fid], sp=null, a, b, cand=[m&&m.sp, s.id, s.name, m&&m.name], i;
+ for(i=0;i<cand.length&&!sp;i++){ if(!cand[i]) continue; var k=spKey(cand[i]); sp=PR.sp[k]||PR.sp[k.replace(/\s+/g,'')]||null; }
+ for(i=0;i<cand.length&&!sp;i++){ if(cand[i]) sp=(PR.byName||{})[spKey(cand[i])]||null; }
  a=lg&&lg.at?whenHtml(lg.at):'-';
  if(!sp) b='<span class="mute">계정 없음</span>';
- else if(!sp.last) b='-<small>연습 0회</small>';
+ else if(!sp.last) b='<span class="mute">연습 기록 없음</span>';
  else b=whenHtml(sp.last).replace('</small>',' · 총 '+sp.n+'회</small>')+'<small class="exl">'+esc(exLabel(sp.exam,sp.teil))+'</small>';
  return '<td class="pres">'+a+'</td><td class="pres">'+b+'</td>';
 }
@@ -419,8 +422,8 @@ function renderTable(){
  var n=[];
  if(lastErr) n.push('불러오기 오류: '+lastErr);
  if(PR.state==='old') n.push('마지막 로그인·말하기: 말하기 서버(Worker)를 새 코드로 배포하면 보입니다.');
- else if(PR.state==='err') n.push('마지막 로그인·말하기를 불러오지 못했습니다. "새로 불러오기"를 누르십시오.');
- else if(PR.state==='ok') n.push('마지막 로그인은 학습 포탈에 로그인하거나 저장된 로그인으로 포탈을 연 시각입니다.');
+ else if(PR.state==='err') n.push('마지막 로그인·말하기를 불러오지 못했습니다(말하기 서버 응답: '+(PR.why||'알 수 없음')+'). "새로 불러오기"를 누르십시오.');
+ else if(PR.state==='ok') n.push('마지막 로그인은 학습 포탈에 로그인하거나 저장된 로그인으로 포탈을 연 시각입니다(서버를 새 코드로 배포한 뒤부터 쌓입니다). 마지막 말하기는 문법 과제, SODA A2·B1·B2 챕터, 모의고사의 말하기 연습을 모두 포함합니다.');
  $('#anote').textContent=n.join(' ');
  if(working) busy(true);
 }
