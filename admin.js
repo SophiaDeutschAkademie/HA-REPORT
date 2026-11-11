@@ -8,7 +8,7 @@ var GH={owner:'SophiaDeutschAkademie',repo:(function(){var s=(location.pathname.
 var UP='ABCDEFGHJKLMNPQRSTUVWXYZ', LO='abcdefghijkmnopqrstuvwxyz', DG='23456789', TKEY='ha-admin-token';
 var LEVELS=['A2','B1','B2','GRAMMATIK','ZERTIFIKAT A2','ZERTIFIKAT B1','ZERTIFIKAT B2','SNU'], EXAMS=['telc','GZ'];
 function isZ(l){return /^ZERTIFIKAT/.test(l||'');}
-var A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
+var PR={state:'load',seen:{},sp:{},at:0}, A=null, S=null, st={}, token='', thr=7, flt='all', working=false, loadedAt=null, shown={}, styled=false, lastErr='', gen=0, pending={};
 
 function H(){return window.HA;}
 function $(s,r){return (r||document).querySelector(s);}
@@ -149,7 +149,7 @@ function summarize(b){
  var ex=b.exams||[], rp=b.reports||[];
  var hx=ex.filter(function(x){return !inZ(x);}), hr=rp.filter(function(x){return !inZ(x);});
  var zx=ex.filter(inZ), zr=rp.filter(inZ);
- var o={name:b.name,level:b.level,exam:b.exam||'',gr:Array.isArray(b.grammatik),
+ var o={name:b.name,level:b.level,exam:b.exam||'',gr:Array.isArray(b.grammatik),sp:(b.sprechen&&b.sprechen.id)?String(b.sprechen.id):'',
   ha:{last:lastOf(hx.concat(hr)),n:Math.max(hr.length,hx.length)},
   vk:{last:lastOf(b.voka),n:(b.voka||[]).length},
   gm:{last:lastOf(b.grammatik),n:(b.grammatik||[]).length},
@@ -177,7 +177,7 @@ function inFilter(c,f){
 }
 
 /* 화면 */
-var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);text-decoration:underline;text-underline-offset:3px;cursor:pointer}.lvs{font:inherit;font-size:13.5px;padding:3px 4px;max-width:150px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}'
+var CSS='.wrap.wide{max-width:1280px}.at td:first-child{white-space:nowrap}.at a.nm{font-weight:700;color:var(--acc);text-decoration:underline;text-underline-offset:3px;cursor:pointer}.lvs{font:inherit;font-size:13.5px;padding:3px 4px;max-width:150px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}'
 +'.asum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 4px}'
 +'.acell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px}'
 +'.acell b{display:block;font-size:26px;line-height:1.3}.acell span{color:var(--mute);font-size:13px}'
@@ -188,6 +188,7 @@ var CSS='.wrap.wide{max-width:1040px}.at a.nm{font-weight:700;color:var(--acc);t
 +'.at th small{display:block;font-weight:400;font-size:11.5px}'
 +'.at td small{display:block;color:var(--mute);font-size:12px;line-height:1.45}'
 +'.at tr.late td{background:#fdeceb}.at tr.late a.nm,.at tr.late b{color:var(--bad)}.at tr.late small.ago{color:var(--bad);font-weight:700}'
++'.at td.pres{white-space:nowrap;font-size:13.5px}.at td.pres small.exl{white-space:nowrap}.at td .mute{color:var(--mute);font-size:12.5px}'
 +'.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700;white-space:nowrap}'
 +'.badge.ok{background:#e4f0e8;color:#2f6a4c}.badge.late{background:var(--bad);color:#fff}'
 +'.badge.norec,.badge.load{background:#efece4;color:#6b665f}.badge.warn{background:#f4ead2;color:#7d5f1b}'
@@ -245,7 +246,7 @@ function open(o){
  var keep=!!(o&&o.keep&&A&&S); /* 학생 화면에서 돌아올 때는 불러온 현황을 그대로 씁니다 */
  if(!keep){
   var sess=H().session(); if(!sess||!sess.data) return;
-  S={sid:sess.sid,pw:sess.pw}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
+  S={sid:sess.sid,pw:sess.pw,kb:sess.kb}; A=sess.data; A.students=A.students||[]; A.decoys=A.decoys||[];
   st={}; shown={}; pending={}; flt='all'; thr=7; lastErr=''; loadedAt=null; tokenChecked=false;
   try{token=localStorage.getItem(TKEY)||'';}catch(e){token='';}
   if(A.token) token=A.token; /* 관리자 파일에 암호화되어 들어 있는 토큰 */
@@ -341,6 +342,41 @@ function summaryHtml(){
   +'<div class="acell"><b>'+c.norec+'</b><span>제출 없음</span></div>'
   +'<div class="acell warn"><b>'+c.warn+'</b><span>확인 필요</span></div>'};
 }
+/* 마지막 로그인 · 마지막 말하기: 말하기 서버(/portal/status)에서 받습니다. 관리자 파일의 키로 관리자임을 확인합니다.
+   로그인은 학습 포탈에 로그인하거나 저장된 로그인으로 포탈을 연 시각(같은 기기에서 30분에 한 번 기록)입니다.
+   말하기는 말하기 연습(SODA Sprechen)을 시작한 시각입니다. 말하기 계정은 학생 파일의 말하기 계정, 없으면 포탈 아이디와 같은 계정입니다. */
+async function loadPresence(){
+ if(!S||!S.kb){PR={state:'off',seen:{},sp:{},at:0};return;}
+ PR.state='load';
+ try{
+  var r=await fetch(H().spApi+'/portal/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:S.sid,k:H().b64e(S.kb)})});
+  if(!r.ok){PR={state:r.status===404?'old':'err',seen:{},sp:{},at:0};}
+  else{var j=await r.json(); PR={state:'ok',seen:j.seen||{},sp:j.sp||{},at:Date.now()};}
+ }catch(e){PR={state:'err',seen:{},sp:{},at:0};}
+ renderTable();
+}
+function spKey(v){return String(v==null?'':v).normalize('NFC').trim().toLowerCase();}
+function exLabel(ex,teil){
+ var m=/^ueb-(a1|a2|b1|b2)-(\d+)$/.exec(ex||''), n;
+ if(m) return m[1].toUpperCase()+' Kapitel '+m[2];
+ m=/^(goethe|telc)-(a2|b1|b2)(?:-(\d+))?$/.exec(ex||'');
+ if(m) return (m[1]==='goethe'?'Goethe ':'telc ')+m[2].toUpperCase()+'-'+(m[3]||'1')+(teil?' · Teil '+teil:'');
+ return String(ex||'')+(teil?' · Teil '+teil:'');
+}
+function whenHtml(ms){
+ var d=new Date(ms), n=daysAgo(new Date(d.getFullYear(),d.getMonth(),d.getDate()));
+ return fmtD(d)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'<small>'+agoText(n)+'</small>';
+}
+function presCells(s,m){
+ if(PR.state==='load') return '<td class="pres">…</td><td class="pres">…</td>';
+ if(PR.state!=='ok') return '<td class="pres">-</td><td class="pres">-</td>';
+ var lg=PR.seen[s.fid], sp=PR.sp[spKey((m&&m.sp)||s.id)], a, b;
+ a=lg&&lg.at?whenHtml(lg.at):'-';
+ if(!sp) b='<span class="mute">계정 없음</span>';
+ else if(!sp.last) b='-<small>연습 0회</small>';
+ else b=whenHtml(sp.last).replace('</small>',' · 총 '+sp.n+'회</small>')+'<small class="exl">'+esc(exLabel(sp.exam,sp.teil))+'</small>';
+ return '<td class="pres">'+a+'</td><td class="pres">'+b+'</td>';
+}
 function rowHtml(s){
  var x=st[s.fid]||{state:'load'}, c=cls(s), m=x.state==='ok'?x.sum:null;
  var name=m?m.name:s.name, lvl=m?m.level:s.level;
@@ -352,6 +388,7 @@ function rowHtml(s){
   var q=m&&m[k];
   h+='<td>'+(q&&q.last?fmtD(q.last)+'<small>'+q.n+'개</small>':'-')+'</td>';
  });
+ h+=presCells(s,m);
  var sub2='';
  if(m&&m.last) sub2='<small class="ago">마지막 제출 '+fmtD(m.last)+' · '+agoText(daysAgo(m.last))+'</small>';
  h+='<td><span class="badge '+c.k+'">'+esc(c.label)+'</span>'+sub2+'</td>';
@@ -377,10 +414,13 @@ function renderTable(){
  rows.sort(function(p,q){return (lvRank(p)-lvRank(q))||KO.compare(nmOf(p),nmOf(q));});
  if(!A.students.length) $('#atb').innerHTML='<div class="empty">명단에 학생이 없습니다. 아래에서 학생을 추가하거나 기존 학생을 연결하십시오.</div>';
  else if(!rows.length) $('#atb').innerHTML='<div class="empty">이 보기에 해당하는 학생이 없습니다.</div>';
- else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 준비<small>등록일</small></th><th>TRAINING<small>등록일</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
+ else $('#atb').innerHTML='<table class="at"><thead><tr><th>이름</th><th>레벨·반</th><th>과제 첨삭<small>제출일</small></th><th>VOKA<small>제출일</small></th><th>GRAMMATIK<small>제출일</small></th><th>시험 준비<small>등록일</small></th><th>TRAINING<small>등록일</small></th><th>마지막 로그인<small>학습 포탈</small></th><th>마지막 말하기<small>Sprechen 연습</small></th><th>상태</th><th>관리</th></tr></thead><tbody>'+rows.map(function(r){return rowHtml(r.s);}).join('')+'</tbody></table>';
  Object.keys(keep).forEach(function(f){var i=document.querySelector('#atb tr[data-f="'+f+'"] .rp');if(i)i.value=keep[f];});
  var n=[];
  if(lastErr) n.push('불러오기 오류: '+lastErr);
+ if(PR.state==='old') n.push('마지막 로그인·말하기: 말하기 서버(Worker)를 새 코드로 배포하면 보입니다.');
+ else if(PR.state==='err') n.push('마지막 로그인·말하기를 불러오지 못했습니다. "새로 불러오기"를 누르십시오.');
+ else if(PR.state==='ok') n.push('마지막 로그인은 학습 포탈에 로그인하거나 저장된 로그인으로 포탈을 연 시각입니다.');
  $('#anote').textContent=n.join(' ');
  if(working) busy(true);
 }
@@ -421,7 +461,7 @@ async function loadAll(){
   if(g!==gen) return;
  }
  A.students.forEach(function(s){st[s.fid]={state:s.password?'load':'nopw'};});
- renderTable();
+ renderTable(); loadPresence();
  var jobs=A.students.filter(function(s){return s.password;}), i=0;
  async function worker(){while(i<jobs.length&&g===gen){await loadOne(jobs[i++],g);}}
  await Promise.all([worker(),worker(),worker()]);
