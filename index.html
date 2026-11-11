@@ -1215,7 +1215,7 @@ function leave(){
  viewLogin(); window.scrollTo(0,0);
 }
 
-window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;},spApi:SP_API,b64e:b64e};
+window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,leave:leave,preview:previewStudent,session:function(){return session;},spApi:SP_API,b64e:b64e,learn:LEARN};
 /* 다른 학습 앱(SODA GRAMMATIK 등)이 로그인 확인을 위해 보낸 경우: 주소의 ?next=(같은 사이트 안의 경로)로 로그인 뒤 돌아갑니다.
    relogin=1이면 저장된 로그인이 있어도 비밀번호를 다시 받습니다(학생 파일이 새로 저장되어 저장된 키로 열리지 않을 때) */
 var Q=new URLSearchParams(location.search), BACK=Q.get('next')||'', RELOGIN=Q.get('relogin')==='1';
@@ -1291,6 +1291,6 @@ else if(restore()) route(hashView()||'hub',true); else{if(location.hash) setUrl(
  mount(); new MutationObserver(mount).observe(document.getElementById('app'),{childList:true});
 })();
 </script>
-<script src="admin.js?v=7"></script>
+<script src="admin.js?v=8"></script>
 </body>
 </html>

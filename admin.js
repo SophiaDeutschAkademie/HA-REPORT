@@ -205,6 +205,15 @@ var CSS='.wrap.wide{max-width:1280px}.at td:first-child{white-space:nowrap}.at a
 +'.cred{border:1.5px solid var(--acc);background:#f1f3f8;border-radius:12px;padding:12px 14px;margin-top:10px}'
 +'.cred div{margin:2px 0}'
 +'.cred.warnbox{border-color:#c9a09b;background:#fbf1ef}'
++'.alinks{margin:0 0 14px}.alinks h2{margin:0 0 8px;font-size:15px;color:var(--mute);font-weight:600}'
++'.algrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}'
++'.algrid a,.algrid .off{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}'
++'.algrid a:hover,.algrid a:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}'
++'.algrid b{display:block;font-size:14.5px;line-height:1.3}.algrid small{display:block;color:var(--mute);font-size:12px;line-height:1.4}'
++'.algrid .gar{display:flex;color:var(--acc);flex:none}.algrid .gar svg{width:16px;height:16px}'
++'.algrid li.big a{background:var(--acc);border-color:var(--acc);color:#fff}.algrid li.big a small,.algrid li.big a .gar{color:#dfe3ec}'
++'.algrid li.big a:hover,.algrid li.big a:focus-visible{background:#3B4863;border-color:#3B4863}'
++'.algrid .off{border-style:dashed;background:transparent;color:var(--mute)}@media(max-width:820px){.algrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.algrid small{display:none}.algrid a,.algrid .off{min-height:44px;padding:8px 10px}.algrid b{font-size:13.5px}}'
 +'.thr{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--mute)}.thr input{width:60px;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:14px}';
 function injectStyle(){
  if(styled) return;
@@ -242,6 +251,27 @@ function needToken(){
  return false;
 }
 
+/* 수업 바로가기: 학생 화면 「학습 진행하기」와 같은 목록(index.html의 LEARN)을 버튼으로 보여 줍니다. 목록을 바꾸면 여기도 같이 바뀝니다 */
+var AR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>', probed={};
+function linkItem(x){
+ var sub=x.d+(x.k==='gr'?' · 학생 로그인 필요':'');
+ if(x.probe&&probed[x.k]!==true) return '<div class="off"><span><b>'+esc(x.t)+'</b><small>준비 중입니다</small></span></div>';
+ return '<a href="'+esc(x.u)+'" target="_blank" rel="noopener" title="'+esc(sub)+'"><span><b>'+esc(x.t)+'</b><small>'+esc(sub)+'</small></span><span class="gar">'+AR+'</span></a>';
+}
+function linksHtml(){
+ var L=H().learn||[]; if(!L.length) return '';
+ return '<section class="alinks" aria-label="수업 바로가기"><h2>수업 바로가기</h2><ul class="algrid">'
+  +L.map(function(x){return '<li id="al-'+x.k+'"'+(x.big?' class="big"':'')+'>'+linkItem(x)+'</li>';}).join('')+'</ul></section>';
+}
+function probeLinks(){
+ (H().learn||[]).forEach(function(x){
+  if(!x.probe||probed[x.k]!=null) return;
+  fetch(x.probe,{method:'HEAD',cache:'no-store'}).then(function(r){
+   probed[x.k]=r.ok; var li=$('#al-'+x.k); if(r.ok&&li) li.innerHTML=linkItem(x);
+  }).catch(function(){});
+ });
+}
+
 function open(o){
  var keep=!!(o&&o.keep&&A&&S); /* 학생 화면에서 돌아올 때는 불러온 현황을 그대로 씁니다 */
  if(!keep){
@@ -254,6 +284,7 @@ function open(o){
  injectStyle();
  var app=H().app; app.className='wrap wide'; $('#top').hidden=false;
  var h='<div class="vhead"><div class="row"><div><div class="who">관리자</div><div class="lv">'+esc(A.name||'')+'</div></div><button class="btn" id="out">로그아웃</button></div></div>';
+ h+=linksHtml();
  h+='<div class="asum" id="asum"></div>';
  h+='<section class="card asec"><div class="rhead"><h2 style="margin:0">학생 현황</h2><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
   +'<label class="thr">기준 <input id="athr" type="number" min="1" max="90" value="'+thr+'"> 일 이상 지남</label><button type="button" class="btn" id="arf">새로 불러오기</button></div></div>'
@@ -303,7 +334,7 @@ function open(o){
   var b=e.target.closest('[data-a="copy"]'); if(!b) return;
   try{navigator.clipboard.writeText(b.dataset.t);b.textContent='복사했습니다';}catch(x){b.textContent='복사하지 못했습니다';}
  });
- tokenNote();
+ tokenNote(); probeLinks();
  window.scrollTo(0,0);
  if(keep) renderTable(); else loadAll();
 }
