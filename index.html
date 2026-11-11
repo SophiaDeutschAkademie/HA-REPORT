@@ -34,19 +34,21 @@ h3{font-size:15px;margin:0 0 4px}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .lvbtn[aria-pressed="true"],.lvbtn[aria-pressed="true"]:hover{border-color:var(--acc);background:var(--accbg)}
 .lvbtn.none span{opacity:.8}
-.lvbtn b.lg{font-size:15px;line-height:1.3;display:block;overflow-wrap:anywhere}
-@media (max-width:480px){.levels{grid-template-columns:repeat(2,1fr)}.lvbtn b.lg{font-size:14px}}
+.lvbtn b.lg{font-size:14px;line-height:1.3;display:block;overflow-wrap:anywhere;padding:2px 0 1px}
+@media (max-width:480px){.levels{grid-template-columns:repeat(3,1fr)}.lvbtn b.lg{font-size:12.5px}}
 .levels.l4{grid-template-columns:repeat(4,1fr)}
 .levels.l3{grid-template-columns:repeat(3,1fr)}
 .pgl{font-size:13px;font-weight:700;color:var(--mute);letter-spacing:.02em;margin:0 0 8px}
 .pgl:not(:first-child){margin-top:18px}
 @media (max-width:480px){.levels.l4{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:360px){.levels{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:600px){.levels,.levels.l4,.levels.l3{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
 .lvsel h2{margin-bottom:10px}
-@media (max-width:420px){.lvbtn{padding:14px 10px}.lvbtn b{font-size:22px}.lvbtn span{font-size:12.5px;line-height:1.5}}
-.lvbtn{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:18px 16px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+@media (max-width:420px){.lvbtn{padding:8px 8px}.lvbtn b{font-size:16px}.lvbtn span{font-size:11px;line-height:1.4}}
+.lvbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px;min-width:0;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
 .lvbtn:hover,.lvbtn:focus-visible{border-color:var(--acc);background:#f1f3f8;outline:none}
-.lvbtn b{display:block;font-size:26px;line-height:1.2;letter-spacing:.01em;margin-bottom:4px}
-.lvbtn span{display:block;color:var(--mute);font-size:13.5px;line-height:1.5}
+.lvbtn b{display:block;font-size:18px;line-height:1.25;letter-spacing:.01em;margin-bottom:1px}
+.lvbtn span{display:block;color:var(--mute);font-size:12px;line-height:1.45}
 .back{border:none;background:none;color:var(--acc);font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:8px;font-size:14px}
 .names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .namebtn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:14px 12px;font-size:16px;font-weight:600;cursor:pointer;text-align:center}
@@ -111,12 +113,12 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
 .foot{color:var(--mute);font-size:12.5px;text-align:center;margin-top:28px}
-.mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 14px}
-.mtab{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 10px;font-weight:700;font-size:16px;cursor:pointer;text-align:center}
+.mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:0 0 12px}
+.mtab{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:8px 8px;font-weight:700;font-size:14px;cursor:pointer;text-align:center}
 .mtab:hover,.mtab:focus-visible{border-color:var(--acc);outline:none}
 .mtab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg);color:#2E3A55}
-@media (max-width:420px){.mtabs{gap:6px}.mtab{font-size:14px;padding:12px 4px;overflow-wrap:normal}}
-@media (max-width:340px){.mtab{font-size:12.5px}}
+@media (max-width:420px){.mtabs{gap:6px}.mtab{font-size:12.5px;padding:7px 4px;overflow-wrap:normal}}
+@media (max-width:340px){.mtab{font-size:11.5px}}
 
 /* 학습 포탈 첫 화면: 나의 학습 기록 보기 / 학습 진행하기 */
 .hub{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:0 0 14px}
@@ -199,9 +201,8 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
  .card{padding:24px 28px}
  .vhead{padding:26px 30px}
  .vhead .who{font-size:28px}
- .mtab{padding:15px 10px;font-size:17px}
- .levels{gap:14px}
- .levels.l4{grid-template-columns:repeat(4,1fr)}
+ .mtab{padding:9px 10px;font-size:14.5px}
+ .levels{gap:10px}
  .hubbtn{padding:28px 26px}.hubbtn b{font-size:22px}.hubbtn .ds{font-size:15px}
  .golist{grid-template-columns:repeat(2,1fr);gap:12px}
  iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{min-height:560px}
@@ -214,8 +215,9 @@ iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;widt
  h2{font-size:16px}
  .brand{font-size:13px}.brand small{font-size:11px}
  .vhead{padding:16px}.vhead .who{font-size:19px}.vhead .lv{font-size:12.5px}
- .mtab{font-size:13.5px;padding:10px 4px}
- .lvbtn{padding:12px}.lvbtn b{font-size:19px;margin-bottom:2px}.lvbtn b.lg{font-size:14px}.lvbtn span{font-size:12px;line-height:1.45}
+ .mtab{font-size:12.5px;padding:7px 4px}
+ .levels,.levels.l4{gap:6px}
+ .lvbtn{padding:8px 8px}.lvbtn b{font-size:16px;margin-bottom:0}.lvbtn b.lg{font-size:12.5px}.lvbtn span{font-size:11px;line-height:1.4}
  .pgl{font-size:12px}
  .tab{font-size:13px;padding:5px 10px}
  .btn{font-size:13px;padding:8px 12px}
