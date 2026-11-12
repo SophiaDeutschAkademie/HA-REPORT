@@ -420,9 +420,12 @@ function saveSess(fresh){
    - 서버에 연결하지 못하면 두 번까지 다시 시도합니다.
    - 확인 상태를 로그인 정보의 spc에 적습니다: 'wait' 확인 중, 'no' 서버가 받지 않음, 'net' 연결하지 못함, 'busy' 서버가 잠시 막음(429). 연결되면 spc는 지웁니다.
      말하기 연습은 이 값으로 기다릴지, 어떤 안내를 보일지 정합니다.
-   - 서버가 받지 않으면 같은 기기에서 10분 동안 다시 확인하지 않습니다(로그인과 로그아웃을 되풀이해도 틀린 로그인이 쌓여 말하기 서버가 잠기지 않게).
-     말하기 서버의 계정을 고친 뒤에는 10분이 지나 다시 로그인하면 새로 확인합니다. 학생이 말하기 연습에서 직접 로그인하면 이 기록은 지워집니다. */
-var SPN='soda-portal:spn', SPN_TTL=10*60*1000;
+   - 요청에는 포탈 로그인 확인값(학생 파일 id와 그 파일을 여는 키)을 함께 보냅니다. 말하기 서버는 아이디·비밀번호가 맞지 않을 때 이 값으로
+     포탈 학생 파일이 실제로 열리는지 확인하고, 그 학생(파일에 적힌 이름과 같은 아이디)의 말하기 계정이 없으면 만들고 비밀번호가 다르면 방금 보낸 것으로 맞춥니다.
+     그래서 포탈에서 학생을 추가하거나 비밀번호를 새로 만든 뒤에도 말하기 계정을 따로 등록하지 않아도 됩니다(포탈 아이디가 이름과 다른 학생은 제외).
+   - 서버가 받지 않으면 같은 기기에서 1분 동안 다시 확인하지 않습니다(로그인과 로그아웃을 되풀이해도 틀린 로그인이 쌓여 말하기 서버가 잠기지 않게.
+     말하기 서버는 같은 아이디로 5번 틀리면 1분 동안 막습니다). 학생이 말하기 연습에서 직접 로그인하면 이 기록은 지워집니다. */
+var SPN='soda-portal:spn', SPN_TTL=60*1000;
 function pause(ms){return new Promise(function(ok){setTimeout(ok,ms);});}
 function spNorm(v){return String(v==null?'':v).normalize('NFKC').trim();}
 function spIds(id,name){
@@ -456,9 +459,11 @@ function spLogSet(sid,t){
  try{localStorage.setItem(SPN,JSON.stringify(log));}catch(e){}
 }
 /* 'ok' 로그인됨, 'no' 서버가 받지 않음, 'busy' 서버가 잠시 막음(429), 'net' 연결하지 못함 */
-function spPost(id,pw){
+function spPost(id,pw,sid){
  var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){if(ctl)ctl.abort();},8000);
- return fetch(SP_API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,pw:pw}),signal:ctl?ctl.signal:undefined})
+ var body={id:id,pw:pw}, s=readSess();
+ if(s&&!s.t&&s.sid===sid&&s.k){body.sid=s.sid;body.k=s.k;} /* 포탈 로그인 확인값 */
+ return fetch(SP_API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined})
   .then(function(r){clearTimeout(to); return r.ok?'ok':r.status===429?'busy':(r.status>=400&&r.status<500)?'no':'net';},function(){clearTimeout(to); return 'net';});
 }
 async function findSp(id,pw,sid,name){
@@ -469,11 +474,11 @@ async function findSp(id,pw,sid,name){
   if(!window.fetch||!spMark(sid,'wait')) return 'skip';
   var ids=spIds(id,name), p=spNorm(pw), r='net', tries=0, i;
   for(i=0;i<ids.length;i++){
-   r=await spPost(ids[i],p);
+   r=await spPost(ids[i],p,sid);
    while(r==='net'&&tries<2){
     tries++; await pause(tries===1?1500:4000);
     var s=readSess(); if(!s||s.sid!==sid||s.sp) return 'skip';
-    r=await spPost(ids[i],p);
+    r=await spPost(ids[i],p,sid);
    }
    if(r==='ok'){spMark(sid,null,{id:ids[i],pw:p,src:'same'}); spLogSet(sid,0); return 'ok';}
    if(r!=='no') break;
