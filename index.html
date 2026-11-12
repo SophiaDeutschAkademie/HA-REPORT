@@ -275,6 +275,7 @@ function $(s,r){return (r||document).querySelector(s);}
    다른 학습 앱(SODA Sprechen 등)이 이 정보를 읽어서 다시 로그인하지 않게 합니다.
    - sid: 학생 파일 id, k: 학생 파일을 여는 키(비밀번호에서 계산한 값. 포탈 비밀번호 자체는 저장하지 않습니다), name · level: 화면 표시용
    - sp: 말하기 연습(SODA Sprechen) 계정. 학생 파일의 sprechen 값이 먼저이고, 없으면 포탈과 같은 아이디 · 비밀번호로 말하기 서버에 로그인이 될 때 그 값입니다
+   - spc: sp가 비어 있을 때의 말하기 계정 확인 상태(아래 "말하기 계정 확인")
    - exp: 유효 시각(로그인 후 12시간). 로그아웃하면 바로 지웁니다. 관리자 로그인은 저장하지 않습니다. */
 /* 로그인 뒤 첫 화면의 격언 80개: [독일어, 한국어, 출처]. 출처가 확실한 인용만 저자와 작품을 적고, 나머지는 속담(Sprichwort)입니다 */
 var QUOTES=[
@@ -398,27 +399,74 @@ function teacherSess(t,force){
  return true;
 }
 function spOf(d){var p=d&&d.sprechen; return (p&&p.id&&p.pw)?{id:String(p.id),pw:String(p.pw)}:null;}
-/* fresh=true: 방금 로그인함(유효 시각을 새로 잡음). false: 저장된 로그인으로 학생 파일을 다시 읽음(유효 시각과 이 로그인 동안 확인한 말하기 계정은 그대로) */
+/* fresh=true: 방금 로그인함(유효 시각을 새로 잡음). false: 저장된 로그인으로 학생 파일을 다시 읽음(유효 시각은 그대로).
+   학생 파일에 말하기 계정이 없으면, 이 브라우저에 남아 있는 같은 학생의 로그인에 연결해 둔 말하기 계정(확인을 마친 계정, 말하기 연습에서 직접 로그인한 계정)을 이어 씁니다.
+   비밀번호만 다시 확인하는 로그인(학습 기록이 새로 등록된 경우)에서도 연결이 끊기지 않습니다 */
 function saveSess(fresh){
  if(!session||!session.data||!session.kb) return;
- var d=session.data, prev=readSess(), keep=!fresh&&!!prev&&prev.sid===session.sid, sp=spOf(d), now=Date.now();
- if(!sp&&keep&&prev.sp) sp=prev.sp;
- writeSess({v:1,sid:session.sid,id:session.uid||d.name,name:d.name,level:d.level,k:b64e(session.kb),sp:sp,q:(keep&&typeof prev.q==='number')?prev.q:nextQuote(),at:keep?prev.at:now,exp:keep?prev.exp:now+STTL});
+ var d=session.data, prev=readSess(), same=!!prev&&!prev.t&&prev.sid===session.sid, keep=!fresh&&same, sp=spOf(d), now=Date.now();
+ if(!sp&&same&&prev.sp) sp=prev.sp;
+ var x={v:1,sid:session.sid,id:session.uid||d.name,name:d.name,level:d.level,k:b64e(session.kb),sp:sp,q:(keep&&typeof prev.q==='number')?prev.q:nextQuote(),at:keep?prev.at:now,exp:keep?prev.exp:now+STTL};
+ if(!sp&&keep&&prev.spc) x.spc=prev.spc;
+ writeSess(x);
 }
-/* 학생 파일에 말하기 계정이 없으면, 포탈과 같은 아이디 · 비밀번호로 말하기 서버에 로그인이 되는지 한 번 확인합니다.
-   되면 그 계정을 이 로그인에 연결합니다. 안 되면 같은 기기에서 6시간 동안 다시 확인하지 않습니다. */
-function findSp(id,pw,sid){
- var TK='soda-portal:spx', now=Date.now(), log={};
- try{log=JSON.parse(localStorage.getItem(TK)||'{}')||{};}catch(e){log={};}
- if(log[sid]&&now-log[sid]<6*3600*1000) return;
+/* ===== 말하기 계정 확인 =====
+   학생 파일에 말하기 계정이 없으면, 로그인 직후 포탈과 같은 아이디 · 비밀번호로 말하기 서버에 로그인이 되는지 확인합니다.
+   되면 그 계정을 이 로그인에 연결합니다(sp). 말하기 연습(SODA Sprechen)은 sp가 있을 때 로그인 화면 없이 열립니다.
+   - 비밀번호는 포탈이 받아들이는 것과 같은 방식으로 다듬어 보냅니다(앞뒤 공백 제거, NFKC). 붙여 넣을 때 공백이 딸려 와도 됩니다.
+   - 아이디는 학생 파일의 이름, 입력한 글자 그대로, 포탈 방식으로 다듬은 것(띄어쓰기 없이 소문자)을 차례로 시도합니다. 보통은 셋이 같아 한 번만 보냅니다.
+   - 서버에 연결하지 못하면 두 번까지 다시 시도합니다.
+   - 확인 상태를 로그인 정보의 spc에 적습니다: 'wait' 확인 중, 'no' 서버가 받지 않음, 'net' 연결하지 못함. 연결되면 spc는 지웁니다.
+     말하기 연습은 이 값으로 기다릴지, 어떤 안내를 보일지 정합니다.
+   - 서버가 받지 않으면 같은 기기에서 6시간 동안 다시 확인하지 않습니다(틀린 로그인이 쌓이지 않게). 학생이 말하기 연습에서 직접 로그인하면 이 기록은 지워집니다. */
+var SPN='soda-portal:spn', SPN_TTL=6*3600*1000;
+function pause(ms){return new Promise(function(ok){setTimeout(ok,ms);});}
+function spNorm(v){return String(v==null?'':v).normalize('NFKC').trim();}
+function spIds(id,name){
+ var a=[], t=spNorm(id), n=spNorm(name), c=function(v){return v.replace(/\s+/g,'').toLowerCase();};
+ function add(v){if(v&&a.indexOf(v)<0) a.push(v);}
+ if(n&&c(n)===c(t)) add(n);
+ add(t); add(c(t));
+ return a;
+}
+/* 로그인 정보가 아직 같은 학생의 것이고 말하기 계정이 비어 있을 때만 고칩니다 */
+function spMark(sid,state,sp){
+ var s=readSess(); if(!s||s.t||s.sid!==sid||s.sp) return false;
+ if(sp){s.sp=sp; delete s.spc;} else s.spc=state;
+ writeSess(s); return true;
+}
+function spLog(){try{return JSON.parse(localStorage.getItem(SPN)||'{}')||{};}catch(e){return {};}}
+function spLogSet(sid,t){
+ var log=spLog(); if(t) log[sid]=t; else delete log[sid];
+ try{localStorage.setItem(SPN,JSON.stringify(log));}catch(e){}
+}
+/* 'ok' 로그인됨, 'no' 서버가 받지 않음, 'busy' 서버가 잠시 막음(429), 'net' 연결하지 못함 */
+function spPost(id,pw){
  var ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){if(ctl)ctl.abort();},8000);
- fetch(SP_API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,pw:pw}),signal:ctl?ctl.signal:undefined}).then(function(r){
-  clearTimeout(to);
-  if(r.ok){var s=readSess(); if(s&&s.sid===sid&&!s.sp){s.sp={id:id,pw:pw,src:'same'};writeSess(s);} delete log[sid];}
-  else if(r.status>=400&&r.status<500) log[sid]=now;
-  else return;
-  try{localStorage.setItem(TK,JSON.stringify(log));}catch(e){}
- }).catch(function(){clearTimeout(to);});
+ return fetch(SP_API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,pw:pw}),signal:ctl?ctl.signal:undefined})
+  .then(function(r){clearTimeout(to); return r.ok?'ok':r.status===429?'busy':(r.status>=400&&r.status<500)?'no':'net';},function(){clearTimeout(to); return 'net';});
+}
+async function findSp(id,pw,sid,name){
+ try{
+  try{localStorage.removeItem('soda-portal:spx');}catch(e){} /* 예전 방식의 기록 */
+  var t=spLog()[sid];
+  if(t&&Date.now()-t<SPN_TTL){spMark(sid,'no');return 'no';}
+  if(!window.fetch||!spMark(sid,'wait')) return 'skip';
+  var ids=spIds(id,name), p=spNorm(pw), r='net', tries=0, i;
+  for(i=0;i<ids.length;i++){
+   r=await spPost(ids[i],p);
+   while(r==='net'&&tries<2){
+    tries++; await pause(tries===1?1500:4000);
+    var s=readSess(); if(!s||s.sid!==sid||s.sp) return 'skip';
+    r=await spPost(ids[i],p);
+   }
+   if(r==='ok'){spMark(sid,null,{id:ids[i],pw:p,src:'same'}); spLogSet(sid,0); return 'ok';}
+   if(r!=='no') break;
+  }
+  if(r==='no') spLogSet(sid,Date.now());
+  spMark(sid,r==='no'?'no':'net');
+  return r;
+ }catch(e){spMark(sid,'net');return 'net';}
 }
 
 /* 마지막 로그인 기록: 로그인하거나 저장된 로그인으로 포탈을 열면 말하기 서버(/portal/seen)에 알립니다.
@@ -503,8 +551,20 @@ function viewLogin(opt){
   }
   session={data:o.data,sid:sid,pw:null,kb:o.bits,uid:uidv};
   saveSess(true); portalSeen(true);
-  if(!spOf(o.data)) findSp(uidv,pwv,sid);
-  if(opt.back){location.replace(opt.back);return;}
+  var cur=readSess();
+  /* 이전 로그인에서 포탈 비밀번호로 연결해 둔 말하기 계정인데 방금 입력한 비밀번호와 다르면(비밀번호가 바뀐 경우) 새 비밀번호로 다시 확인합니다 */
+  if(cur&&cur.sp&&cur.sp.src==='same'&&!spOf(o.data)&&cur.sp.pw!==spNorm(pwv)){cur.sp=null; writeSess(cur);}
+  var chk=(cur&&!cur.sp)?findSp(uidv,pwv,sid,o.data.name):null;
+  if(opt.back){
+   /* 다른 학습 앱으로 돌아가기 전에 말하기 계정 확인이 끝나기를 기다립니다(최대 4.5초).
+      바로 떠나면 확인이 도중에 끊겨, 이 로그인 동안 말하기 연습에서 다시 로그인하게 됩니다 */
+   if(chk){
+    msg.textContent='로그인했습니다. 잠시만 기다려 주십시오.';
+    await Promise.race([chk,pause(4500)]);
+    var z=readSess(); if(z&&z.sid===sid&&!z.sp&&z.spc==='wait') spMark(sid,'net'); /* 끝나지 않은 확인은 이 페이지를 떠나면 끊기므로 "확인 중"으로 남기지 않습니다 */
+   }
+   location.replace(opt.back);return;
+  }
   route(opt.next||'hub',true);
  });
 }
@@ -782,6 +842,8 @@ function syncSess(){
  if(restore()) route('hub',true); else leave();
 }
 window.addEventListener('storage',function(e){if(e.key===SKEY) syncSess();});
+/* 말하기 계정 확인이 끝나기 전에 이 페이지를 닫거나 떠나면 확인이 끊깁니다. "확인 중"으로 남겨 두면 말하기 연습이 오지 않을 결과를 기다리므로 "연결하지 못함"으로 바꿉니다 */
+window.addEventListener('pagehide',function(){var z=readSess(); if(z&&!z.t&&!z.sp&&z.spc==='wait'){z.spc='net';writeSess(z);}});
 window.addEventListener('pageshow',function(e){if(e.persisted) syncSess();});
 
 /* 화면: 리포트 */
@@ -1234,7 +1296,7 @@ window.HA={app:app,$:$,esc:esc,deriveId:deriveId,decryptBundle:decryptBundle,lea
    relogin=1이면 저장된 로그인이 있어도 비밀번호를 다시 받습니다(학생 파일이 새로 저장되어 저장된 키로 열리지 않을 때) */
 var Q=new URLSearchParams(location.search), BACK=Q.get('next')||'', RELOGIN=Q.get('relogin')==='1';
 if(!/^\/(?!\/)[^\\]*$/.test(BACK)) BACK='';
-function backName(u,j){var g=/^\/SODA-GRAMMATIK-KURS\//i.test(u);return (g?'SODA GRAMMATIK':'이 학습 자료')+(j==='topic'?(g?'은':'는'):'');}
+function backName(u,j){var n=/^\/SODA-GRAMMATIK-KURS\//i.test(u)?'SODA GRAMMATIK':/^\/SODA-Lehrwerk\/sprechen\//i.test(u)?'말하기 연습':'';return (n||'이 학습 자료')+(j==='topic'?(n?'은':'는'):'');}
 if(BACK){
  try{history.replaceState(null,'',location.pathname);}catch(e){}
  if(!RELOGIN&&restore()) location.replace(BACK);
