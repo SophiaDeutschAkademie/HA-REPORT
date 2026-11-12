@@ -114,6 +114,7 @@ table.tb{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
 .rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 iframe#rf,iframe#rfz,iframe#vf,iframe#gf,iframe#xf,iframe#trf{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:#f6f5f2;min-height:420px}
 .foot{color:var(--mute);font-size:12.5px;text-align:center;margin-top:28px}
+.spst{color:var(--mute);font-size:13px;line-height:1.6;text-align:center;margin:20px 0 0}.spst:empty{display:none}.spst.warn{color:var(--bad)}.spst+.foot{margin-top:10px}
 .mtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:0 0 12px}
 .mtab{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:8px 8px;font-weight:700;font-size:14px;cursor:pointer;text-align:center}
 .mtab:hover,.mtab:focus-visible{border-color:var(--acc);outline:none}
@@ -394,6 +395,7 @@ function teacherSess(t,force){
  if(!t||!t.sid||!t.k) return false;
  var cur=readSess(); if(cur&&!cur.t&&!force) return true;
  var now=Date.now(), x={v:1,t:1,sid:t.sid,id:'teacher',name:'관리자',level:'',k:t.k,at:now,exp:now+STTL};
+ if(cur&&cur.t&&cur.sid===t.sid&&cur.sp) x.sp=cur.sp; /* 선생님이 말하기 연습에서 직접 로그인해 둔 계정은 통과 로그인을 새로 남길 때도 유지합니다 */
  writeSess(x);
  try{localStorage.setItem('soda-portal:gate',x.sid+'|'+x.at+'|'+String(x.k).slice(0,12));}catch(e){}
  return true;
@@ -416,10 +418,11 @@ function saveSess(fresh){
    - 비밀번호는 포탈이 받아들이는 것과 같은 방식으로 다듬어 보냅니다(앞뒤 공백 제거, NFKC). 붙여 넣을 때 공백이 딸려 와도 됩니다.
    - 아이디는 학생 파일의 이름, 입력한 글자 그대로, 포탈 방식으로 다듬은 것(띄어쓰기 없이 소문자)을 차례로 시도합니다. 보통은 셋이 같아 한 번만 보냅니다.
    - 서버에 연결하지 못하면 두 번까지 다시 시도합니다.
-   - 확인 상태를 로그인 정보의 spc에 적습니다: 'wait' 확인 중, 'no' 서버가 받지 않음, 'net' 연결하지 못함. 연결되면 spc는 지웁니다.
+   - 확인 상태를 로그인 정보의 spc에 적습니다: 'wait' 확인 중, 'no' 서버가 받지 않음, 'net' 연결하지 못함, 'busy' 서버가 잠시 막음(429). 연결되면 spc는 지웁니다.
      말하기 연습은 이 값으로 기다릴지, 어떤 안내를 보일지 정합니다.
-   - 서버가 받지 않으면 같은 기기에서 6시간 동안 다시 확인하지 않습니다(틀린 로그인이 쌓이지 않게). 학생이 말하기 연습에서 직접 로그인하면 이 기록은 지워집니다. */
-var SPN='soda-portal:spn', SPN_TTL=6*3600*1000;
+   - 서버가 받지 않으면 같은 기기에서 10분 동안 다시 확인하지 않습니다(로그인과 로그아웃을 되풀이해도 틀린 로그인이 쌓여 말하기 서버가 잠기지 않게).
+     말하기 서버의 계정을 고친 뒤에는 10분이 지나 다시 로그인하면 새로 확인합니다. 학생이 말하기 연습에서 직접 로그인하면 이 기록은 지워집니다. */
+var SPN='soda-portal:spn', SPN_TTL=10*60*1000;
 function pause(ms){return new Promise(function(ok){setTimeout(ok,ms);});}
 function spNorm(v){return String(v==null?'':v).normalize('NFKC').trim();}
 function spIds(id,name){
@@ -433,8 +436,20 @@ function spIds(id,name){
 function spMark(sid,state,sp){
  var s=readSess(); if(!s||s.t||s.sid!==sid||s.sp) return false;
  if(sp){s.sp=sp; delete s.spc;} else s.spc=state;
- writeSess(s); return true;
+ writeSess(s); spRefresh(); return true;
 }
+/* 말하기 연습 연결 상태 줄: 첫 화면과 학습 진행하기 아래에 보입니다. 이 로그인으로 말하기 연습이 바로 열리는지, 아니면 왜 아닌지를 학생과 선생님이 바로 볼 수 있게 합니다 */
+function spText(){
+ var s=readSess(); if(!s||s.t) return ['',''];
+ if(s.sp&&s.sp.id&&s.sp.pw) return ['','말하기 연습: 이 로그인으로 바로 열립니다.'];
+ if(s.spc==='wait') return ['','말하기 연습: 계정을 확인하고 있습니다.'];
+ if(s.spc==='no') return ['warn','말하기 연습: 말하기 서버가 이 아이디와 비밀번호를 받지 않았습니다. 말하기 연습에서는 따로 로그인해야 합니다. 선생님께 알려 주십시오.'];
+ if(s.spc==='net') return ['warn','말하기 연습: 말하기 서버에 연결하지 못해 계정을 확인하지 못했습니다. 로그아웃한 뒤 다시 로그인하면 다시 확인합니다.'];
+ if(s.spc==='busy') return ['warn','말하기 연습: 말하기 서버가 잠시 로그인을 막고 있어 계정을 확인하지 못했습니다. 몇 분 뒤에 로그아웃한 다음 다시 로그인해 주십시오.'];
+ return ['warn','말하기 연습: 계정이 연결되어 있지 않습니다. 로그아웃한 뒤 다시 로그인하면 확인합니다.'];
+}
+function spLine(){var t=spText();return '<p class="spst'+(t[0]?' '+t[0]:'')+'" id="spst" role="status">'+esc(t[1])+'</p>';}
+function spRefresh(){var el=$('#spst'), t; if(!el) return; t=spText(); el.className='spst'+(t[0]?' '+t[0]:''); el.textContent=t[1];}
 function spLog(){try{return JSON.parse(localStorage.getItem(SPN)||'{}')||{};}catch(e){return {};}}
 function spLogSet(sid,t){
  var log=spLog(); if(t) log[sid]=t; else delete log[sid];
@@ -464,7 +479,7 @@ async function findSp(id,pw,sid,name){
    if(r!=='no') break;
   }
   if(r==='no') spLogSet(sid,Date.now());
-  spMark(sid,r==='no'?'no':'net');
+  spMark(sid,r==='no'?'no':r==='busy'?'busy':'net');
   return r;
  }catch(e){spMark(sid,'net');return 'net';}
 }
@@ -758,6 +773,7 @@ function viewHub(){
   +'<button type="button" class="hubbtn" id="hrec"><span class="ic">'+IC_REC+'</span><span class="tx"><b>나의 학습 기록 보기</b><span class="ds">과제 첨삭 · VOKA · 시험 준비 · 성취 평가</span></span></button>'
   +'</div>'
   +quoteHtml()
+  +spLine()
   +'<p class="foot">로그인은 이 기기에서 12시간 동안 유지됩니다. 여러 사람이 쓰는 기기에서는 다 쓴 뒤 로그아웃을 누르십시오.</p>';
  $('#out').addEventListener('click',leave);
  $('#hrec').addEventListener('click',function(){route('records');});
@@ -786,7 +802,7 @@ function viewLearn(){
  LEARN.forEach(function(x){
   h+='<li id="go-'+x.k+'"'+(x.big?' class="big"':'')+'>'+((x.probe&&probed[x.k]!==true)?'<div class="off"><span><b>'+esc(x.t)+'</b><span class="ds">준비 중입니다</span></span></div>':learnItem(x,lv))+'</li>';
  });
- app.innerHTML=h+'</ul></section>';
+ app.innerHTML=h+'</ul>'+spLine()+'</section>';
  $('#out').addEventListener('click',leave);
  $('#hm').addEventListener('click',function(){route('hub');});
  LEARN.forEach(function(x){
@@ -841,7 +857,7 @@ function syncSess(){
  hidden={}; curLevel=null; vLevel=null; pSel=null; tSel=null;
  if(restore()) route('hub',true); else leave();
 }
-window.addEventListener('storage',function(e){if(e.key===SKEY) syncSess();});
+window.addEventListener('storage',function(e){if(e.key===SKEY){syncSess(); spRefresh();}});
 /* 말하기 계정 확인이 끝나기 전에 이 페이지를 닫거나 떠나면 확인이 끊깁니다. "확인 중"으로 남겨 두면 말하기 연습이 오지 않을 결과를 기다리므로 "연결하지 못함"으로 바꿉니다 */
 window.addEventListener('pagehide',function(){var z=readSess(); if(z&&!z.t&&!z.sp&&z.spc==='wait'){z.spc='net';writeSess(z);}});
 window.addEventListener('pageshow',function(e){if(e.persisted) syncSess();});
